@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0002 · Agent 循环解剖 + 范式图谱</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --sub:#5b5b5b; --line:#e3e3e0; --bg:#fbfbf9;
+    --accent:#9a3412; --soft:#f3efe7; --ok:#166534; --bad:#b91c1c; --blue:#1e40af;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:#2c2c2c;}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:#fffdf4;border-color:#e7d9a8;}
+  code{background:#efece4;padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;display:block;margin:8px 0;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:13px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075}
+  .cycle{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0;}
+  @media(max-width:640px){.cycle{grid-template-columns:1fr 1fr}}
+  .cycle div{border:1px solid var(--line);border-radius:10px;padding:12px 10px;text-align:center;background:#fff;font-size:14px;}
+  .cycle .num{display:block;font-size:12px;color:var(--accent);font-weight:700;}
+  .grid2{display:grid;grid-template-columns:1fr;gap:12px;margin:14px 0;}
+  .pcard{border:1px solid var(--line);border-radius:12px;padding:14px 18px;background:#fff;}
+  .pcard.agent{border-color:#cbb26a;background:#fffdf4;}
+  .pcard h3{margin:0 0 4px;font-size:16px;}
+  .pcard .en{color:var(--accent);font-weight:500;font-size:12px;margin-left:6px;}
+  .pcard .when{color:var(--ok);font-size:13.5px;margin:6px 0 2px;}
+  .pcard .no{color:var(--sub);font-size:13.5px;}
+  .pcard .ex{font-size:13px;color:#333;background:var(--soft);border-radius:8px;padding:6px 10px;margin-top:8px;}
+  .dt{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:#fff;}
+  .dt .row{display:flex;gap:12px;padding:9px 0;border-top:1px dashed var(--line);}
+  .dt .row:first-of-type{border-top:none;}
+  .dt .key{flex:0 0 132px;font-weight:650;color:var(--blue);font-size:14px;}
+  .dt .val{flex:1;font-size:14.5px;}
+  /* quiz */
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:#fff;}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:#fff;border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:#eafaf0;border-color:#9bd9b0;color:var(--ok);font-weight:600;}
+  .opt.wrong{background:#fdeaea;border-color:#e9b4b4;color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:#fffaf4;font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #e6c9b8;}
+  @media print{body{background:#fff}.wrap{padding:0}.pcard{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0002 · Agent 循环解剖 + 范式图谱</h1>
+  <div class="meta">Agent Foundations · 概念层第 2 课 · 预计 9 分钟</div>
+
+  <p class="lead">第 1 课你已分清 Agent 与 Workflow（流程谁掌控）。本课把它落地：① Agent 的循环到底怎么转；② 一张完整的范式图谱（5 种 Workflow + 1 种 Agent loop），并给你一套「拿到需求怎么选」的判断法。</p>
+
+  <div class="box">
+    <b>本课小胜（可验证）：</b>学完你能在纸上画出一个 Agent 的循环（感知→推理→行动→观察），并针对一个业务需求说出该用哪种范式及理由。
+  </div>
+
+  <h2>1. Agent 循环：ReAct 是怎么转的</h2>
+  <p>Anthropic 文里说："Agents are typically just LLMs using tools based on environmental feedback in a loop." 拆开就是四步不断重复——这就是 <b>ReAct（Reason → Act → Observe）</b>：</p>
+  <div class="cycle">
+    <div><span class="num">①</span>感知<br>读目标+历史</div>
+    <div><span class="num">②</span>推理<br>想下一步</div>
+    <div><span class="num">③</span>行动<br>调工具</div>
+    <div><span class="num">④</span>观察<br>看结果</div>
+  </div>
+  <p>关键点（原文强调）：每一步都要从<b>环境拿到「ground truth」（真实反馈）</b>——工具返回的结果、代码执行的输出，而不是模型"以为"的结果。Agent 靠这个判断自己进度对不对。</p>
+
+  <pre><span class="c"># 最小 Agent loop（伪代码，可直接映射成 PHP for 循环）</span>
+messages = [system_prompt, user_goal]
+<span class="k">for</span> i <span class="k">in</span> range(MAX_ITER):          <span class="c"># 代码熔断保险丝</span>
+    resp = llm(messages, tools=tool_defs)   <span class="c"># ① 感知 + ② 推理</span>
+    <span class="k">if</span> resp.has_final_answer:        <span class="c"># 模型自报完成</span>
+        <span class="k">break</span>
+    obs  = execute_tool(resp.tool_call)     <span class="c"># ③ 行动：调你的 API/DB/代码</span>
+    messages += [resp.tool_call, obs]       <span class="c"># ④ 观察：结果写回短期记忆</span>
+<span class="c"># 跑满 MAX_ITER 仍未完成 → 超时返回当前最优 + 告警</span></pre>
+  <p>你后端写循环太熟了——区别只在：<b>「下一步干啥、调哪个工具、传什么参」是模型每轮临时决定的</b>，不是你写死的 `if/else`。这就是"自主"二字的全部含义。</p>
+
+  <h2>2. 范式图谱：6 种可复用的模式</h2>
+  <p>下面 5 种是 <b>Workflow（流程由代码写死，可预测一致）</b>，最后 1 种是 <b>Agent（模型自主控流程）</b>。每个都标了「何时用 / 何时不用 / PHP 业务例子」。</p>
+
+  <div class="grid2">
+    <div class="pcard">
+      <h3>Prompt chaining<span class="en">提示链</span></h3>
+      <div class="when">用：任务能干净拆成固定子步骤</div>
+      <div class="no">不用：步骤间强依赖、需灵活分支</div>
+      <div class="ex">例：工单→先提取关键信息→再生成回复→再语气润色，三步串起来。</div>
+    </div>
+    <div class="pcard">
+      <h3>Routing<span class="en">路由</span></h3>
+      <div class="when">用：输入有明显不同类别，分开处理更好</div>
+      <div class="no">不用：类别模糊、分类不准</div>
+      <div class="ex">例：用户消息先分类「咨询/投诉/退单」，各自进专门的提示与队列。</div>
+    </div>
+    <div class="pcard">
+      <h3>Parallelization<span class="en">并行化</span></h3>
+      <div class="when">用：子任务可并行，或多视角投票提置信</div>
+      <div class="no">不用：步骤必须串行依赖</div>
+      <div class="ex">例：同时生成「技术文案+营销文案」再合并；或对同一答案跑 3 次取共识。</div>
+    </div>
+    <div class="pcard">
+      <h3>Orchestrator-workers<span class="en">编排-执行</span></h3>
+      <div class="when">用：事先猜不到要拆哪些子任务（如改哪些文件）</div>
+      <div class="no">不用：子任务固定可知（那用并行化）</div>
+      <div class="ex">例：「给这个模块加缓存层」——先让模型规划要改哪些文件，再分派并行改。</div>
+    </div>
+    <div class="pcard">
+      <h3>Evaluator-optimizer<span class="en">评估-优化</span></h3>
+      <div class="when">用：有清晰评估标准、迭代能显著提质</div>
+      <div class="no">不用：质量难量化、反馈无价值</div>
+      <div class="ex">例：先写 SQL，再让另一个模型按「是否命中索引/语义对不对」打分并返修。</div>
+    </div>
+    <div class="pcard agent">
+      <h3>Agent loop<span class="en">自主循环</span></h3>
+      <div class="when">用：步骤数无法预测、无法硬编码固定路径的开放问题</div>
+      <div class="no">不用：简单任务——成本高风险大、错误会累积</div>
+      <div class="ex">例：「排查这次 500 错误的根因」——模型自己查日志、改配置、复跑，直到修好。</div>
+    </div>
+  </div>
+  <p style="color:var(--sub);font-size:13.5px">更全的对照见 <a href="../reference/paradigms.html">架构范式速查</a>。编排-执行 vs 并行化只差一点：子任务是否预先写死。</p>
+
+  <h2>3. 选型判断法：拿到需求怎么选</h2>
+  <p>Anthropic 首要原则：<b>能简单解决就别上 Agent</b>。按下面顺序从简到繁走，走到哪步够用就停：</p>
+  <div class="dt">
+    <div class="row"><div class="key">单次能解决</div><div class="val">加检索/示例优化一次 LLM 调用就够 → <b>不建 Agent</b></div></div>
+    <div class="row"><div class="key">步骤固定</div><div class="val">任务能拆成确定子步骤 → <b>Prompt chaining</b></div></div>
+    <div class="row"><div class="key">输入分类型</div><div class="val">有明显不同类别分别处理 → <b>Routing</b></div></div>
+    <div class="row"><div class="key">子任务并行</div><div class="val">可并行或多视角投票 → <b>Parallelization</b></div></div>
+    <div class="row"><div class="key">子任务未知</div><div class="val">事先不知要拆哪些 → <b>Orchestrator-workers</b></div></div>
+    <div class="row"><div class="key">需迭代打磨</div><div class="val">有评估标准、迭代能提质 → <b>Evaluator-optimizer</b></div></div>
+    <div class="row"><div class="key">开放难预测</div><div class="val">步骤数无法预估、要灵活决策 → <b>Agent loop</b></div></div>
+  </div>
+
+  <h2>4. 小测（即时反馈）</h2>
+  <p style="color:var(--sub);font-size:14px">点选后立即给反馈；每题选项字数相同，避免泄露答案。</p>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>我是你的老师。</b>比如「编排-执行和并行化到底怎么分」「我的某个业务该套哪个范式」「循环里工具报错怎么兜底」——<b>直接问我就行</b>。下一课可选项：① 手搓一个最小 Agent loop（先用伪代码/Python，或按你需求上 PHP 风格）；② 深挖 Tool calling 的接口设计与避坑。你定。
+  </div>
+
+  <footer>
+    主推源（强烈推荐阅读）：<a href="https://www.anthropic.com/engineering/building-effective-agents">Anthropic — Building Effective Agents</a>（本课 5 种 Workflow + Agent loop 分类的权威来源）。<br>
+    速查：<a href="../reference/glossary.html">术语表</a> · <a href="../reference/paradigms.html">架构范式速查</a> · 上一课 <a href="0001-what-is-an-agent.html">0001</a>
+  </footer>
+</div>
+
+<script>
+const Q = [
+  {
+    q:"「用户消息先分咨询/投诉/退单再分流」该用哪种？",
+    opts:["Routing 路由模式","Prompt 链模式","Agent 自主循环","Parallel 并行模式"],
+    ans:0,
+    ok:"对。输入有明显不同类别、需分别处理——典型 Routing。",
+    no:"不对。先分类再分流是 Routing；链是固定步骤，并行是同时跑，agent 是模型自定流程。"
+  },
+  {
+    q:"Orchestrator-workers 与 Parallelization 的根本差别？",
+    opts:["子任务是否预先定义","是否使用了大模型","是否需要调用工具","输出是否要聚合"],
+    ans:0,
+    ok:"对。并行化的子任务是预先写死的；编排-执行的子任务由编排器按输入现定。",
+    no:"不对。差别只在：子任务是否预先定义。两者都用模型、都可能调工具、都聚合。"
+  },
+  {
+    q:"哪种场景最该用 Agent loop 而非 Workflow？",
+    opts:["排查生产环境偶发报错根因","把文章翻译后统一润色一遍","按规则把订单分到三个队列","对同一张图生成五种风格"],
+    ans:0,
+    ok:"对。根因排查步骤数无法预测、需灵活决策，正合 Agent loop；其余都是固定路径。",
+    no:"不对。只有「步骤数无法预测、要灵活决策」的开放任务才上 Agent；其余是固定流程。"
+  },
+  {
+    q:"Agent 每步必须拿到的「ground truth」指什么？",
+    opts:["环境真实反馈的结果","模型自己预估的答案","用户事先写好的期望","云端训练好的权重"],
+    ans:0,
+    ok:"对。每步要从环境拿到真实反馈（工具返回/执行输出），而非模型「以为」的结果。",
+    no:"不对。ground truth 是环境真实反馈，不是模型预估、不是用户期望、不是权重。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';
+  block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct = oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

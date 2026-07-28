@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0001 · Agent 到底是什么</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --sub:#5b5b5b; --line:#e3e3e0; --bg:#fbfbf9;
+    --accent:#9a3412; --soft:#f3efe7; --ok:#166534; --bad:#b91c1c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:780px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:#2c2c2c;}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;
+    padding:16px 20px;margin:18px 0;}
+  .box.q{background:#fffdf4;border-color:#e7d9a8;}
+  code{background:#efece4;padding:1px 6px;border-radius:5px;font-size:14px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  .quad{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0;}
+  .quad div{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff;}
+  .quad b{color:var(--accent)}
+  .vs{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:stretch;margin:18px 0;}
+  .vs .col{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#fff;}
+  .vs .col h3{margin:0 0 6px;font-size:15px;}
+  .vs .mid{display:flex;align-items:center;color:var(--sub);font-size:22px;}
+  .vs .agent{border-color:#cbb26a;background:#fffdf4;}
+  ul{margin:8px 0;padding-left:20px;} li{margin:5px 0;}
+  /* quiz */
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:#fff;}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:#fff;border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:#eafaf0;border-color:#9bd9b0;color:var(--ok);font-weight:600;}
+  .opt.wrong{background:#fdeaea;border-color:#e9b4b4;color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:#fffaf4;font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #e6c9b8;}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0001 · Agent 到底是什么</h1>
+  <div class="meta">Agent Foundations · 概念层第 1 课 · 预计 6 分钟</div>
+
+  <p class="lead">一句话：<b>Agent = 一个能「在循环里自己决定下一步、并调用工具」的 LLM。</b> 普通 LLM 调用是你问一句它答一句；Agent 是你给个目标，它自己琢磨、动手、看结果、再琢磨，直到干完。</p>
+
+  <div class="box">
+    <b>本课目标（一个可验证的小胜）：</b>学完你能用自己的话回答两个问题——① Agent 和普通 LLM 调用差在哪？② Agent 和 Workflow 差在哪？后面有 3 道小测检验。
+  </div>
+
+  <h2>1. 最小心智模型：四件套</h2>
+  <p>一个最小可用的 Agent，核心由四样东西组成。记这四个词就够了：</p>
+  <div class="quad">
+    <div><b>模型 Model</b><br>做推理与决策的「大脑」</div>
+    <div><b>工具 Tools</b><br>调 API、查库、跑代码等外部能力</div>
+    <div><b>记忆 Memory</b><br>跨步骤/跨会话记住信息</div>
+    <div><b>循环 Loop</b><br>反复「想→做→看」直到完成</div>
+  </div>
+  <p>Anthropic 把「模型 + 工具 + 记忆」合称为 <b>Augmented LLM（增强型 LLM）</b>——它是所有 Agentic 系统的积木。循环，则是把这块积木变成 Agent 的那一下。</p>
+
+  <h2>2. 最关键的区分：Agent vs Workflow</h2>
+  <p>这是最容易被绕晕的一点，也是本课重点。<b>区别只有一个问题：流程是谁掌控的？</b></p>
+  <div class="vs">
+    <div class="col">
+      <h3>Workflow（工作流）</h3>
+      <p>流程由<b>开发者写死的代码</b>编排：先调 A、再判断、再调 B……可预测、一致，但死板。</p>
+    </div>
+    <div class="mid">vs</div>
+    <div class="col agent">
+      <h3>Agent（自主体）</h3>
+      <p>流程由<b>模型自己在循环里</b>决定：下一步调哪个工具、跑几步、何时停，都是它现想的。灵活，但成本高、可能跑偏。</p>
+    </div>
+  </div>
+  <p>所以是「代码控流程」还是「模型控流程」，一念之差。这也是为什么 Agent 适合<b>步骤数无法提前预测</b>的开放任务，而 Workflow 适合<b>路径固定、要稳定</b>的任务。</p>
+
+  <h2>3. 一个朴素但重要的提醒</h2>
+  <div class="box q">
+    <b>首要原则：能简单解决，就别上 Agent。</b> Agent 用延迟和成本换性能，且错误会随循环累积。很多时候，优化单次 LLM 调用（加检索、加示例）就够用了；只有简单方案不够时，才加多步 Agentic 系统。框架能帮你起步，但生产环境要懂底层、敢砍抽象层。
+  </div>
+
+  <h2>4. 小测（即时反馈，帮助长期记住）</h2>
+  <p style="color:var(--sub);font-size:14px">每题四个选项字数相同，避免泄露答案。点选后立即给反馈。</p>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>我是你的老师。</b>任何不清楚的地方——比如「循环具体怎么停」「工具和 API 有啥区别」「我现有 PHP 业务能怎么接」——<b>直接问我就行</b>，不要憋着。下一课我们拆开看 Agent 的「循环」到底怎么转，并一览 5 种 Workflow + 1 种 Agent 范式图谱。
+  </div>
+
+  <footer>
+    主推源（强烈推荐阅读）：<a href="https://www.anthropic.com/engineering/building-effective-agents">Anthropic — Building Effective Agents</a>（本课外化定义的权威来源）。<br>
+    速查：<a href="../reference/glossary.html">术语表</a> · <a href="../reference/paradigms.html">架构范式速查</a> · <a href="../MISSION.md">Mission</a>
+  </footer>
+</div>
+
+<script>
+const Q = [
+  {
+    q:"区分 Agent 与 Workflow 的关键，是谁掌控流程？",
+    opts:["模型在循环中自主决定","开发者用代码写死路径","用户手动逐步去点击","后端服务定时来触发"],
+    ans:0,
+    ok:"对。Agent 由模型在循环里自主决定流程；Workflow 由代码写死。这是两者最根本的界线。",
+    no:"不对。看的是「流程由谁掌控」：Agent 是模型自主、Workflow 是代码写死。"
+  },
+  {
+    q:"一个最小可用 Agent 的核心四件套通常包含？",
+    opts:["模型工具记忆加循环","前端后端数据库缓存","提示词模板加样例库","微服务消息队列网关"],
+    ans:0,
+    ok:"对。Model + Tools + Memory + Loop，四样撑起一个 Agent。",
+    no:"不对。Agent 的核心是模型、工具、记忆、循环——不是传统后端分层或基础设施。"
+  },
+  {
+    q:"为什么 Agent 比简单 Workflow 成本和风险更高？",
+    opts:["自主循环会累积错误","它必须采购更贵硬件","它难以并行处理任务","它必须部署在云端上"],
+    ans:0,
+    ok:"对。自主循环里错误会逐步累积，且每步都有延迟/调用成本；所以要先在沙箱充分测试、加护栏。",
+    no:"不对。成本与风险主要来自「自主循环会累积错误」+ 每步开销，而非硬件或部署位置。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';
+  block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct = oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 架构范式速查 · cheat sheet</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --sub:#5b5b5b; --line:#e3e3e0; --bg:#fbfbf9;
+    --accent:#9a3412; --soft:#f3efe7; --blue:#1e40af; --green:#166534;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.6;font-size:15px;}
+  .wrap{max-width:980px;margin:0 auto;padding:52px 28px 80px;}
+  h1{font-size:28px;margin:0 0 4px;}
+  .lede{color:var(--sub);margin:0 0 14px;font-size:14px;}
+  .axis{display:flex;gap:10px;margin:0 0 30px;flex-wrap:wrap;}
+  .pill{font-size:13px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;}
+  .pill b{color:var(--accent)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:720px){.grid{grid-template-columns:1fr}}
+  .card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:#fff;}
+  .card.agent{border-color:#cbb26a;background:#fffdf4;}
+  .name{font-weight:700;font-size:16px;}
+  .name .en{color:var(--accent);font-weight:500;font-size:12px;margin-left:6px;}
+  .when{color:var(--green);font-size:13px;margin:6px 0 4px;}
+  .no{color:var(--sub);font-size:13px;}
+  .flow{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+    background:var(--soft);border-radius:8px;padding:8px 10px;margin-top:10px;color:#333;white-space:pre-wrap;}
+  .label{display:inline-block;font-size:11px;letter-spacing:1px;text-transform:uppercase;
+    color:var(--blue);font-weight:700;margin-bottom:14px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #e6c9b8;}
+  @media print{body{background:#fff}.wrap{padding:0}.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Agent 架构范式速查</h1>
+  <p class="lede">一张图看懂「何时用什么」。骨架来源：<a href="https://www.anthropic.com/engineering/building-effective-agents">Anthropic — Building Effective Agents</a>。先简单，复杂仅当简单方案不够时才上。</p>
+
+  <div class="axis">
+    <span class="pill"><b>谁控流程？</b> 代码写死 → Workflow ｜ 模型自定 → Agent</span>
+    <span class="pill"><b>核心权衡</b> 延迟/成本 ↔ 性能/灵活性</span>
+  </div>
+
+  <div class="label">Workflows · 流程由代码编排（可预测、一致）</div>
+  <div class="grid">
+    <div class="card">
+      <div class="name">Prompt chaining<span class="en">提示链</span></div>
+      <div class="when">用：任务能干净拆成固定子步骤</div>
+      <div class="no">不用：步骤间强依赖、需灵活分支</div>
+      <div class="flow">输入 → LLM① → 闸门检查 → LLM② → … → 输出</div>
+    </div>
+    <div class="card">
+      <div class="name">Routing<span class="en">路由</span></div>
+      <div class="when">用：输入有清晰不同类别，分开处理更好</div>
+      <div class="no">不用：类别模糊、分类不准</div>
+      <div class="flow">输入 → 分类LLM → 分支A / 分支B / 分支C</div>
+    </div>
+    <div class="card">
+      <div class="name">Parallelization<span class="en">并行化</span></div>
+      <div class="when">用：子任务可并行，或多视角投票提置信</div>
+      <div class="no">不用：步骤必须串行依赖</div>
+      <div class="flow">输入 → ┬ LLM-a ┐
+            ├ LLM-b ┼→ 聚合
+            └ LLM-c ┘  (或同任务投票)</div>
+    </div>
+    <div class="card">
+      <div class="name">Orchestrator-workers<span class="en">编排-执行</span></div>
+      <div class="when">用：事先猜不到要拆哪些子任务（如改哪些文件）</div>
+      <div class="no">不用：子任务固定可知（那用并行化）</div>
+      <div class="flow">输入 → 编排LLM → 动态派活 → worker×N → 综合</div>
+    </div>
+    <div class="card">
+      <div class="name">Evaluator-optimizer<span class="en">评估-优化</span></div>
+      <div class="when">用：有清晰评估标准、迭代能显著提质</div>
+      <div class="no">不用：质量难量化、反馈无价值</div>
+      <div class="flow">生成LLM ⇄ 评估LLM（反馈循环直到达标）</div>
+    </div>
+  </div>
+
+  <div class="label" style="margin-top:26px">Autonomous Agent · 模型在循环中自主控流程</div>
+  <div class="grid">
+    <div class="card agent">
+      <div class="name">Agent loop<span class="en">自主循环</span></div>
+      <div class="when">用：步骤数难预测、无法硬编码固定路径的开放问题</div>
+      <div class="no">不用：简单任务——成本高风险大、错误会累积</div>
+      <div class="flow">目标 → 感知 → 推理 → 行动(调工具)
+   → 观察结果 → 再推理 → … → 停止条件</div>
+    </div>
+  </div>
+
+  <footer>
+    对照 <a href="glossary.html">术语表</a> · 回到 <a href="../lessons/0001-what-is-an-agent.html">课程 0001</a>。
+    记住首要原则：<b>能简单 prompt 解决就别上 Agent</b>。
+  </footer>
+</div>
+</body>
+</html>

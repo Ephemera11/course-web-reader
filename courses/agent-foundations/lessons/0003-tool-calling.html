@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0003 · Tool Calling：模型与世界的接口</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --sub:#5b5b5b; --line:#e3e3e0; --bg:#fbfbf9;
+    --accent:#9a3412; --soft:#f3efe7; --ok:#166534; --bad:#b91c1c; --blue:#1e40af;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:#2c2c2c;}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:#fffdf4;border-color:#e7d9a8;}
+  code{background:#efece4;padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12.5px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:#fff;}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 150px;font-weight:650;color:var(--blue);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .pit{display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0;}
+  .pit div{border:1px solid var(--line);border-radius:10px;padding:11px 15px;background:#fff;font-size:14.5px;}
+  .pit .x{color:var(--bad);font-weight:700;}
+  .pit .ok{color:var(--ok);font-weight:700;}
+  /* quiz */
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:#fff;}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:#fff;border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:#eafaf0;border-color:#9bd9b0;color:var(--ok);font-weight:600;}
+  .opt.wrong{background:#fdeaea;border-color:#e9b4b4;color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:#fffaf4;font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #e6c9b8;}
+  @media print{body{background:#fff}.wrap{padding:0}.pit div{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0003 · Tool Calling：模型与世界的接口</h1>
+  <div class="meta">Agent Foundations · 概念层第 3 课 · 预计 9 分钟</div>
+
+  <p class="lead">前两课你懂了「Agent 是什么、循环怎么转、范式怎么选」。但循环里的「行动」到底是什么？——就是 <b>Tool Calling（工具调用）</b>。它是一份<b>契约</b>：你告诉模型有哪些工具、各自干嘛、参数长啥样；模型自己决定调不调、调哪个、传什么参；你执行后把结果喂回去。Anthropic 明确说：<b>「工具集及其文档必须被设计得清晰、周到——这直接决定 Agent 成败。」</b></p>
+
+  <div class="box">
+    <b>本课小胜（可验证）：</b>学完你能写出一个工具定义的三要素（name / description / input_schema），并解释「为什么 description 写得好不好，比你的主提示词还关键」。
+  </div>
+
+  <h2>1. 它到底是什么：契约，不是魔法</h2>
+  <p>用你后端工程师的语言类比最准：<b>工具 = 一个带 JSON Schema 参数说明的 API 端点；模型 = 临时决定何时调用、传什么参的「调用方」；你 = 服务端</b>。区别只在——「调不调、调哪个、传啥」是模型每轮现想的，不是你写死的路由。</p>
+
+  <h2>2. 一个工具定义的三要素</h2>
+  <div class="schema">
+    <div class="row"><div class="key">name</div><div class="val">动词化、无歧义的名字，如 <code>get_order_status</code>。模型靠它精确匹配。</div></div>
+    <div class="row"><div class="key">description</div><div class="val"><b>这其实是给模型的「提示词」。</b>要写清：这个工具干嘛用、<b>什么情况下该用 / 不该用</b>、参数怎么填。Anthropic 强调它应获得和你主提示同等的打磨投入。</div></div>
+    <div class="row"><div class="key">input_schema</div><div class="val">JSON Schema：参数名、类型、是否必填、枚举值、描述。越严，模型传的参越靠谱。</div></div>
+  </div>
+
+  <pre><span class="c">// 一个贴近你 PHP 业务的工具定义（伪 JSON）</span>
+{
+  <span class="k">"name"</span>: <span class="s">"get_order_status"</span>,
+  <span class="k">"description"</span>: <span class="s">"按订单号查询物流与支付状态。仅当已拿到明确 order_id 时调用；</span>
+<span class="s">                  若用户只给姓名，先不可用此工具，应改用 search_orders_by_user。"</span>,
+  <span class="k">"input_schema"</span>: {
+    <span class="k">"type"</span>: <span class="s">"object"</span>,
+    <span class="k">"properties"</span>: {
+      <span class="k">"order_id"</span>: { <span class="k">"type"</span>: <span class="s">"string"</span>, <span class="k">"description"</span>: <span class="s">"形如 ORD-2026-0001"</span> }
+    },
+    <span class="k">"required"</span>: [<span class="s">"order_id"</span>]
+  }
+}</pre>
+
+  <h2>3. 一次完整的「往返」怎么接进循环</h2>
+  <p>工具调用把第 2 课的循环接成了真实闭环。下面用 PHP 风格伪代码（你能直接映射成 Laravel 里一次 <code>$client-&gt;messages-&gt;create()</code>）：</p>
+  <pre><span class="c">// Agent loop 里接入 tool calling（PHP 伪代码）</span>
+<span class="k">$</span>tools = [ <span class="c">/* 上面的工具定义数组 */</span> ];
+<span class="k">$</span>messages = [ [<span class="s">'role'</span>=&gt;<span class="s">'user'</span>, <span class="s">'content'</span>=&gt;<span class="s">$goal</span>] ];
+
+<span class="k">for</span> (<span class="k">$</span>i = 0; <span class="k">$</span>i &lt; MAX_ITER; <span class="k">$</span>i++) {
+    <span class="k">$</span>resp = <span class="k">$</span>client-&gt;messages-&gt;create([
+        <span class="s">'model'</span> =&gt; MODEL, <span class="s">'max_tokens'</span> =&gt; 1024,
+        <span class="s">'tools'</span> =&gt; <span class="k">$</span>tools, <span class="s">'messages'</span> =&gt; <span class="k">$</span>messages
+    ]);
+    <span class="k">if</span> (<span class="k">$</span>resp-&gt;stop_reason !== <span class="s">'tool_use'</span>) <span class="k">break</span>; <span class="c">// 模型自报完成</span>
+    <span class="k">foreach</span> (<span class="k">$</span>resp-&gt;content <span class="k">as</span> <span class="k">$</span>block) {
+        <span class="k">if</span> (<span class="k">$</span>block-&gt;type === <span class="s">'tool_use'</span>) {
+            <span class="k">$</span>obs = call_user_func(<span class="k">$</span>block-&gt;name, <span class="k">$</span>block-&gt;input); <span class="c">// 你的后端函数</span>
+            <span class="k">$</span>messages[] = [<span class="s">'role'</span>=&gt;<span class="s">'user'</span>, <span class="s">'content'</span>=&gt;[
+                [<span class="s">'type'</span>=&gt;<span class="s">'tool_result'</span>, <span class="s">'tool_use_id'</span>=&gt;<span class="k">$</span>block-&gt;id, <span class="s">'content'</span>=&gt;<span class="k">$</span>obs]
+            ]]; <span class="c">// 把真实结果写回「观察」</span>
+        }
+    }
+}</pre>
+  <p>注意：你执行的不是模型的「想象」，而是真实后端函数（查库、调 API、跑代码）。返回的结果就是第 2 课说的 <b>ground truth</b>。</p>
+
+  <h2>4. 为什么工具设计直接决定 Agent 成败</h2>
+  <p>Anthropic 在附录「Prompt Engineering your Tools」给了关键经验（已核实）：</p>
+  <ul>
+    <li><b>工具定义值得和主提示同等的打磨。</b>工具规格就是「提示」的一部分。</li>
+    <li><b>提出 ACI（Agent-Computer Interface）类比：</b>你为「人机界面（HCI）」投入多少精力，就该为「代理-计算机界面」投入同样多。把工具当产品界面来设计。</li>
+    <li><b>格式选错，模型就写不对。</b>例如「写 diff」要求先知道改动行数（难）；把代码塞进 JSON 比塞进 markdown 多了换行/引号的转义负担（易错）。选模型<b>能可靠写出</b>的格式。</li>
+    <li><b>用 poka-yoke（防错设计）：</b>让工具本身「不容易被用错」——参数加枚举、加校验、失败返回结构化错误而非裸文本。</li>
+    <li><b>用大量样例测试模型实际怎么用你的工具</b>，而不是凭直觉假设。</li>
+  </ul>
+
+  <h2>5. 新手最常踩的 5 个坑</h2>
+  <div class="pit">
+    <div><span class="x">✗ 描述太模糊</span>　「获取信息」→ 模型不知道何时用、用错场景。<span class="ok">✓</span> 写清用途 + 何时用 / 何时不用。</div>
+    <div><span class="x">✗ 工具太多 / 重叠</span>　20 个长得像的工具 → 模型选花眼、调错。<span class="ok">✓</span> 少而精，职责清晰不交叉。</div>
+    <div><span class="x">✗ Schema 太松</span>　参数全 string、全 optional → 传来垃圾值。<span class="ok">✓</span> 用枚举、类型、required 收紧。</div>
+    <div><span class="x">✗ 错误只返回裸文本</span>　「失败了」→ 模型无法恢复重试。<span class="ok">✓</span> 返回结构化错误（错误码 + 原因 + 建议）。</div>
+    <div><span class="x">✗ 不校验直接入库</span>　模型参数当信任输入 → 注入 / 误写。<span class="ok">✓</span> 服务端照常做鉴权、校验、白名单。</div>
+  </div>
+
+  <h2>6. 小测（即时反馈）</h2>
+  <p style="color:var(--sub);font-size:14px">点选后立即给反馈；每题选项字数相同，避免泄露答案。</p>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>我是你的老师。</b>比如「我的 Laravel 项目里工具函数怎么组织和注册」「参数校验具体怎么做」「多工具怎么避免模型选错」——<b>直接问我就行</b>。下一课可选项：① <b>手搓最小 Agent loop</b>（先把概念落成能跑的代码骨架，按你偏好用 PHP 风格当 MVP）；② 深入 Planning / Memory 模块设计。你定。
+  </div>
+
+  <footer>
+    主推源（强烈推荐阅读）：<a href="https://www.anthropic.com/engineering/building-effective-agents">Anthropic — Building Effective Agents</a>（本文第 3 课的「工具即提示」「ACI 类比」「格式坑」全部来自其附录 2，已全文核实）。<br>
+    速查：<a href="../reference/glossary.html">术语表</a> · <a href="../reference/paradigms.html">架构范式速查</a> · 上一课 <a href="0002-agent-loop-and-paradigms.html">0002</a>
+  </footer>
+</div>
+
+<script>
+const Q = [
+  {
+    q:"在 tool calling 里，「调不调、调哪个、传什么参」由谁决定？",
+    opts:["模型在循环中自主决定","开发者用代码写死路径","用户手动点击来触发","云端训练好的固定权重"],
+    ans:0,
+    ok:"对。这正是 Agent「自主」的来源：调用决策由模型每轮临定，而非写死路由。",
+    no:"不对。决策权在模型（循环里自主），不是代码写死、用户点击或固定权重。"
+  },
+  {
+    q:"工具定义里，哪部分相当于「告诉模型何时、为何用」的提示？",
+    opts:["description 工具描述","name 工具名字","input_schema 参数字段","tool_result 返回结果"],
+    ans:0,
+    ok:"对。description 就是给模型的提示词，要写清用途与何时用/不用；Anthropic 说它要像主提示一样打磨。",
+    no:"不对。决定「何时为何用」的是 description；name 仅用于匹配，schema 是参数形状。"
+  },
+  {
+    q:"按 Anthropic，选工具 I/O 格式的首要考虑是什么？",
+    opts:["模型能否可靠地写出","字段名是否全用英文","是否使用了数组结构","返回里是否含图片"],
+    ans:0,
+    ok:"对。要选模型能可靠写出的格式（避开 JSON 转义、diff 行数等坑），而非看表面规范。",
+    no:"不对。首要考虑模型能否可靠写出；英文命名、数组、图片都不是关键。"
+  },
+  {
+    q:"Anthropic 提 ACI 是提醒工程师什么？",
+    opts:["工具接口值得像人机界面般打磨","工具数量必须尽量要多","模型应当直连改数据库","必须用异步非阻塞调用"],
+    ans:0,
+    ok:"对。ACI=Agent-Computer Interface，应像 HCI 一样投入设计精力，这是 Agent 成败关键。",
+    no:"不对。ACI 提醒的是「像打磨人机界面那样打磨工具接口」，不是堆数量或直连库。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';
+  block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct = oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

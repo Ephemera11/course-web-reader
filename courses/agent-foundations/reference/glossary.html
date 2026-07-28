@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent 术语表 · 速查</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --sub:#5b5b5b; --line:#e3e3e0; --bg:#fbfbf9;
+    --accent:#9a3412; --soft:#f3efe7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.7;font-size:16px;}
+  .wrap{max-width:860px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;letter-spacing:.5px;margin:0 0 4px;}
+  .lede{color:var(--sub);margin:0 0 36px;font-size:15px;}
+  .term{padding:18px 0;border-top:1px solid var(--line);}
+  .term:first-of-type{border-top:none;}
+  .k{font-weight:650;font-size:17px;}
+  .k .en{color:var(--accent);font-weight:500;font-size:13px;margin-left:8px;letter-spacing:.3px;}
+  .d{color:#2c2c2c;margin-top:4px;}
+  .tag{display:inline-block;font-size:12px;color:var(--sub);
+    background:var(--soft);border:1px solid var(--line);border-radius:999px;
+    padding:1px 9px;margin:10px 6px 0 0;}
+  footer{margin-top:48px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:18px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #e6c9b8;}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Agent 术语表</h1>
+  <p class="lede">速查本工作区每节课都会用到的核心名词。定义来源于 Anthropic《Building Effective Agents》及主流共识。每次新课都遵循此表。</p>
+
+  <div class="term">
+    <div class="k">Agent<span class="en">autonomous agent</span></div>
+    <div class="d">在循环中由<b>模型自身</b>动态决定流程、调用工具、根据环境反馈（工具结果/执行结果）推进任务、知道何时停止的系统。与 Workflow 的根本区别是：<b>谁掌控流程</b>。</div>
+    <span class="tag">自主性</span><span class="tag">循环</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Workflow<span class="en">predefined path</span></div>
+    <div class="d">LLM 与工具通过<b>开发者写死的代码路径</b>被编排的系统。流程可预测、一致，但缺乏灵活性。例：固定步骤链、路由、并行。</div>
+    <span class="tag">可预测</span><span class="tag">代码编排</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Augmented LLM<span class="en">增强型 LLM</span></div>
+    <div class="d">Agentic 系统的基本积木：一个 LLM，被增强了检索（retrieval）、工具（tools）、记忆（memory）能力。模型自己决定何时搜索、调哪个工具、记什么。</div>
+    <span class="tag">积木</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Prompt chaining<span class="en">提示链</span></div>
+    <div class="d">把任务拆成固定子步骤，每个 LLM 调用处理上一步输出；可在中间加程序化「闸门」检查是否跑偏。用延迟换准确率。</div>
+    <span class="tag">workflow</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Routing<span class="en">路由</span></div>
+    <div class="d">先分类输入，再把它导向专门的后续处理。适合有明显不同类别、分开处理更好的复杂任务。</div>
+    <span class="tag">workflow</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Parallelization<span class="en">并行化</span></div>
+    <div class="d">LLM 同时处理任务并程序化聚合输出。两种变体：<b>分片（sectioning）</b>把任务拆独立子任务并行；<b>投票（voting）</b>同一任务多次运行取优。</div>
+    <span class="tag">workflow</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Orchestrator-workers<span class="en">编排-执行</span></div>
+    <div class="d">中心 LLM 动态拆解任务、委派给 worker LLM、再综合结果。与并行化的关键区别：子任务不是预先定义，而是编排器按输入现定。</div>
+    <span class="tag">workflow</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Evaluator-optimizer<span class="en">评估-优化</span></div>
+    <div class="d">一个 LLM 生成响应，另一个 LLM 评估并给反馈，循环迭代直至达标。适合有清晰评估标准、迭代能显著提质的场景。</div>
+    <span class="tag">workflow</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Agent loop<span class="en">自主循环</span></div>
+    <div class="d">Agent 的核心运行机制：感知→推理/规划→行动（调工具）→观察结果→再推理……直到任务完成或触发停止条件（如最大迭代次数）。</div>
+    <span class="tag">循环</span><span class="tag">自主性</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Tool / Function calling<span class="en">工具调用</span></div>
+    <div class="d">模型通过结构化接口调用外部能力（查数据库、调 API、跑代码）。工具的定义与文档写得是否清晰，直接决定 Agent 成败。</div>
+    <span class="tag">接口</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Memory<span class="en">记忆</span></div>
+    <div class="d">让 Agent 跨步骤/跨会话保留信息的能力。短期（本轮对话上下文）与长期（外部存储）之分。属于 Augmented LLM 的增强之一。</div>
+    <span class="tag">增强</span>
+  </div>
+
+  <div class="term">
+    <div class="k">ReAct<span class="en">推理+行动</span></div>
+    <div class="d">Yao et al. 2022 提出的范式：模型交替进行「推理（Reason）」与「行动（Act）」，行动后观察（Observe）结果再继续。现代 agent loop 的理论源头。</div>
+    <span class="tag">理论源头</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Autonomy vs Predictability<span class="en">自主-可预测权衡</span></div>
+    <div class="d">Agent 用延迟与成本换取性能与灵活性；Workflow 用灵活性换可预测与一致。能简单解决就别上 Agent——这是首要原则。</div>
+    <span class="tag">取舍</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Stopping conditions<span class="en">停止条件</span></div>
+    <div class="d">让 Agent 循环终止的机制：模型自报完成、<b>最大迭代熔断（MAX_ITER）</b>、任务达成校验、人工 checkpoint、错误预算。绝不只信模型「自觉停」——必须代码层兜底防无限循环。见 <a href="../lessons/0002-agent-loop-and-paradigms.html">课程 0002</a>。</div>
+    <span class="tag">循环</span><span class="tag">护栏</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Memory: short vs long<span class="en">记忆：短期/长期</span></div>
+    <div class="d"><b>短期</b>=每轮重传给 LLM 的 messages 数组（活在上下文窗口，受 token 上限）；<b>长期</b>=外部存储（Redis/DB/向量库），模型经 tool 调用读取。你后端的缓存与数据库天然就是 Agent 的长期记忆后端。见 <a href="../lessons/0002-agent-loop-and-paradigms.html">课程 0002</a>。</div>
+    <span class="tag">增强</span><span class="tag">存储</span>
+  </div>
+
+  <div class="term">
+    <div class="k">ACI<span class="en">Agent-Computer Interface</span></div>
+    <div class="d">「代理-计算机界面」类比（Anthropic 附录 2）。提醒：工具接口应像人机界面（HCI）那样投入设计——格式要让模型易写可靠（避开 JSON 转义、diff 行数等坑）、用 poka-yoke 防误用、用大量样例测试模型实际用法。直接决定 Agent 成败。见 <a href="../lessons/0003-tool-calling.html">课程 0003</a>。</div>
+    <span class="tag">工具</span><span class="tag">接口</span>
+  </div>
+
+  <div class="term">
+    <div class="k">Tool definition<span class="en">工具定义三要素</span></div>
+    <div class="d">一个工具 = 契约：① <b>name</b>（动词化、无歧义）② <b>description</b>（给模型的提示词，写清用途 + 何时用/不用，应获与主提示同等的打磨）③ <b>input_schema</b>（JSON Schema 收紧参数）。模型据此自主决定调用时机与参数。见 <a href="../lessons/0003-tool-calling.html">课程 0003</a>。</div>
+    <span class="tag">工具</span><span class="tag">契约</span>
+  </div>
+
+  <footer>
+    来源：<a href="https://www.anthropic.com/engineering/building-effective-agents">Anthropic — Building Effective Agents</a>。
+    回到 <a href="../lessons/0001-what-is-an-agent.html">课程 0001</a> · 看 <a href="paradigms.html">架构范式速查</a>。
+  </footer>
+</div>
+</body>
+</html>

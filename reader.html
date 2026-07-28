@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>阅读器</title>
+<link rel="stylesheet" href="shell.css">
+</head>
+<body>
+<div class="reader-bar">
+  <div class="theme" role="group" aria-label="主题">
+    <button data-theme-set="light" title="白天">☀</button>
+    <button data-theme-set="dark" title="夜间">🌙</button>
+    <button data-theme-set="auto" title="自动">🔄</button>
+  </div>
+  <div class="title" id="barTitle">课程阅读器</div>
+  <button class="bm" id="bmBtn" title="收藏本节">🔖</button>
+  <div class="nav">
+    <button id="prevBtn" title="上一节">‹</button>
+    <button id="nextBtn" title="下一节">›</button>
+  </div>
+</div>
+<div id="content" class="loading"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
