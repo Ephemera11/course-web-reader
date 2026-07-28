@@ -5,12 +5,12 @@
 (function () {
   "use strict";
 
-  // 站点根：reader.html 设了 <base href=".../lessons/">(给注入正文用)，
-  // 因此 fetch 课程清单/章节必须用绝对站点根，否则会被 base 改写而 404。
+  // 站点根：从 app.js 自身 URL 推导（对 index.html / reader.html 都正确，
+  // 不受 URL 是否含文件名影响；也不受 reader 里 <base> 影响）。
   var SITE_ROOT = (function () {
-    var here = location.pathname.replace(/reader\.html.*$/, "");
-    if (!here.endsWith("/")) here += "/";
-    return here;
+    var src = (document.currentScript && document.currentScript.src) || "";
+    if (src) return src.substring(0, src.lastIndexOf("/") + 1);
+    return location.pathname.replace(/[^/]*$/, ""); // fallback: 当前路径的目录
   })();
   var COURSES_DIR = "courses";
   var MANIFEST = SITE_ROOT + COURSES_DIR + "/manifest.json";
@@ -131,7 +131,8 @@
         t = t.split("getElementById('" + old + "')").join("getElementById('" + neu + "')");
         t = t.split('getElementById("' + old + '")').join('getElementById("' + neu + '")');
       });
-      s.textContent = t;
+      // 包成 IIFE：避免多节注入后顶层 const/let(如 quiz 的 Q) 全局冲突
+      s.textContent = "(function(){\n" + t + "\n})();";
     });
     return section;
   }
@@ -178,12 +179,17 @@
       });
   }
 
+  function isNearBottom() {
+    var doc = document.documentElement;
+    var scrollTop = window.scrollY || doc.scrollTop || 0;
+    var viewport = window.innerHeight || doc.clientHeight || 0;
+    var full = doc.scrollHeight || document.body.scrollHeight || 0;
+    return (scrollTop + viewport) >= (full - 600);
+  }
   function maybeLoadNext() {
     if (!state || state.idx + 1 >= state.lessons.length) return;
     if (state.loading) return;
-    var content = $("#content");
-    var nearBottom = (content.scrollTop + content.clientHeight) >= (content.scrollHeight - 600);
-    if (nearBottom) loadLessonAt(state.idx + 1, { append: true });
+    if (isNearBottom()) loadLessonAt(state.idx + 1, { append: true });
   }
 
   function updateBar(lesson) {
@@ -251,7 +257,7 @@
       saveBookmarks(bm);
       $("#bmBtn").classList.toggle("on", !!bm[key]);
     });
-    $("#content").addEventListener("scroll", function () { maybeLoadNext(); });
+    window.addEventListener("scroll", function () { maybeLoadNext(); });
     $all(".reader-bar button[data-theme-set]").forEach(function (b) {
       b.addEventListener("click", function () {
         var mode = b.getAttribute("data-theme-set");

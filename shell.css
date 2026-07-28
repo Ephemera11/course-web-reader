@@ -46,7 +46,7 @@ body{
 
 /* 目录下拉 */
 .toc-menu{
-  position:absolute; top:50px; right:16px; z-index:30;
+  position:fixed; top:54px; right:16px; z-index:30;
   background:var(--bar); border:1px solid var(--line); border-radius:10px;
   box-shadow:0 8px 24px var(--shadow); padding:6px; min-width:250px;
   max-height:62vh; overflow:auto; display:none;
