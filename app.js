@@ -125,6 +125,12 @@
     while (body.firstChild) section.appendChild(body.firstChild);
     var map = {};
     $all("[id]", section).forEach(function (el) { var old = el.id, neu = old + "-" + idx; map[old] = neu; el.id = neu; });
+    // 章节脚本处理：
+    // 1) id 映射（getElementById 字面量）
+    // 2) getElementById 垫片：章节常动态拼接 id（如 getElementById("q4-block-"+qn)），
+    //    注入后真实 id 带 -{idx} 后缀，垫片先查原 id、查不到补后缀，保证 quiz 命中。
+    // 3) 整段包 IIFE：隔离每章顶层变量（如 quiz 的 const Q / correct），多章连续注入不冲突；
+    //    章节内 b.onclick=()=>{Q.answer()} 闭包能捕获本 IIFE 的 Q，无需全局暴露。
     $all("script", section).forEach(function (s) {
       var t = s.textContent;
       Object.keys(map).forEach(function (old) {
@@ -132,8 +138,10 @@
         t = t.split("getElementById('" + old + "')").join("getElementById('" + neu + "')");
         t = t.split('getElementById("' + old + '")').join('getElementById("' + neu + '")');
       });
-      // 包成 IIFE：避免多节注入后顶层 const/let(如 quiz 的 Q) 全局冲突
-      s.textContent = "(function(){\n" + t + "\n})();";
+      var pad = "var __lgeb" + idx + "=function(id){return document.getElementById(id)||document.getElementById(id+\"-" + idx + "\");};";
+      t = t.replace(/document\.getElementById\(/g, "__lgeb" + idx + "(");
+      t = pad + t.replace(/(?<!\.)getElementById\(/g, "__lgeb" + idx + "(");
+      s.textContent = "(function(){\n" + t + "\n})();"; // IIFE 隔离顶层变量
     });
     return section;
   }

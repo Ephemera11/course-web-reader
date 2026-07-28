@@ -182,28 +182,28 @@ final output</div>
 
     <div class="qblock" id="q4-block-1">
       <p><b>Q1.</b> 一个客服系统要先判断用户留言是「退款 / 技术故障 / 投诉」，再交给对应专员用各自的话术和工具处理。最适合的范式是？</p>
-      <button class="opt" data-correct="false" onclick="Q4.answer(1,false,this)">A. Prompt Chaining</button>
-      <button class="opt" data-correct="true" onclick="Q4.answer(1,true,this)">B. Routing</button>
-      <button class="opt" data-correct="false" onclick="Q4.answer(1,false,this)">C. Parallelization</button>
-      <button class="opt" data-correct="false" onclick="Q4.answer(1,false,this)">D. Evaluator-Optimizer</button>
+      <button class="opt" data-correct="false">A. Prompt Chaining</button>
+      <button class="opt" data-correct="true">B. Routing</button>
+      <button class="opt" data-correct="false">C. Parallelization</button>
+      <button class="opt" data-correct="false">D. Evaluator-Optimizer</button>
       <div class="fb" id="q4-fb-1"></div>
     </div>
 
     <div class="qblock" id="q4-block-2">
       <p><b>Q2.</b> 一个编程任务需要读 issue、<b>临时决定</b>改哪几个文件、并行修改后再汇总成 PR。子任务数量和类型事先无法确定。应优先用？</p>
-      <button class="opt" data-correct="false" onclick="Q4.answer(2,false,this)">A. Routing</button>
-      <button class="opt" data-correct="false" onclick="Q4.answer(2,false,this)">B. Parallelization</button>
-      <button class="opt" data-correct="true" onclick="Q4.answer(2,true,this)">C. Orchestrator-Workers</button>
-      <button class="opt" data-correct="false" onclick="Q4.answer(2,false,this)">D. Prompt Chaining</button>
+      <button class="opt" data-correct="false">A. Routing</button>
+      <button class="opt" data-correct="false">B. Parallelization</button>
+      <button class="opt" data-correct="true">C. Orchestrator-Workers</button>
+      <button class="opt" data-correct="false">D. Prompt Chaining</button>
       <div class="fb" id="q4-fb-2"></div>
     </div>
 
     <div class="qblock" id="q4-block-3">
       <p><b>Q3.</b> 下列哪种情况<b>最不该</b>一上来就用完全自主的 Agent Loop？</p>
-      <button class="opt" data-correct="false" onclick="Q4.answer(3,false,this)">A. 需要模型自己探索未知、决定下一步动作</button>
-      <button class="opt" data-correct="true" onclick="Q4.answer(3,true,this)">B. 步骤完全固定、输入分三类、每类走专用提示词</button>
-      <button class="opt" data-correct="false" onclick="Q4.answer(3,false,this)">C. 子任务结构运行时才清楚</button>
-      <button class="opt" data-correct="false" onclick="Q4.answer(3,false,this)">D. 无明显可复用流程、需持续感知环境</button>
+      <button class="opt" data-correct="false">A. 需要模型自己探索未知、决定下一步动作</button>
+      <button class="opt" data-correct="true">B. 步骤完全固定、输入分三类、每类走专用提示词</button>
+      <button class="opt" data-correct="false">C. 子任务结构运行时才清楚</button>
+      <button class="opt" data-correct="false">D. 无明显可复用流程、需持续感知环境</button>
       <div class="fb" id="q4-fb-3"></div>
     </div>
   </div>
@@ -220,25 +220,28 @@ final output</div>
 </div>
 
 <script>
-const Q4 = {
-  answer: function(qn, correct, btn){
-    var block = document.getElementById("q4-block-" + qn);
-    var buttons = block.querySelectorAll(".opt");
-    buttons.forEach(function(b){ b.disabled = true; });
-    var fb = document.getElementById("q4-fb-" + qn);
-    if(correct){
-      btn.classList.add("correct");
-      fb.textContent = "✓ 正确。";
-      fb.className = "fb ok";
-    } else {
-      btn.classList.add("wrong");
-      fb.textContent = "✗ 再想想。";
-      fb.className = "fb bad";
-      // 同时高亮正确答案
-      buttons.forEach(function(b){ if(b.getAttribute("data-correct")==="true") b.classList.add("correct"); });
-    }
-  }
-};
+const Q4 = [
+  { q:"", ans:1, ok:"✓ 正确。先分类再分发，正是 Routing。", no:"✗ 再想想：这是先判断类型再分派给专用处理者。" },
+  { q:"", ans:2, ok:"✓ 正确。子任务运行时才确定，用 Orchestrator-Workers。", no:"✗ 再想想：Routing 是固定分支，这里是动态拆解。" },
+  { q:"", ans:1, ok:"✓ 正确。步骤固定、分类明确，用 Workflow(Routing) 即可，不必上 Agent。", no:"✗ 再想想：这种可预测流程用 Agent 反而浪费且难控。" }
+];
+var quiz4=document.getElementById('quiz4');
+Q4.forEach((item,gi)=>{
+  var block=document.getElementById('q4-block-'+(gi+1));
+  var fb=block.querySelector('.fb');
+  var opts=block.querySelectorAll('.opt');
+  opts.forEach(function(b,oi){
+    b.onclick=function(){
+      var correct = oi===item.ans;
+      opts.forEach(function(x){ x.disabled=true; });
+      if(correct){ b.classList.add('correct'); fb.className='fb ok'; fb.textContent=item.ok; }
+      else {
+        b.classList.add('wrong'); fb.className='fb bad'; fb.textContent=item.no;
+        opts[item.ans].classList.add('correct');
+      }
+    };
+  });
+});
 </script>
 </body>
 </html>
