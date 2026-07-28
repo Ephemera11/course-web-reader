@@ -13,7 +13,8 @@
     return location.pathname.replace(/[^/]*$/, ""); // fallback: 当前路径的目录
   })();
   var COURSES_DIR = "courses";
-  var MANIFEST = SITE_ROOT + COURSES_DIR + "/manifest.json";
+  var ASSET_V = "?v=3";  // 静态资源版本串：改动后 bump，强制浏览器/代理刷新缓存
+  var MANIFEST = SITE_ROOT + COURSES_DIR + "/manifest.json" + ASSET_V;
   var BM_KEY = "cwr_bookmarks";   // {"<courseId>/<file>": true}
   var THEME_KEY = "cwr_theme";    // "light" | "dark" | "auto"
 
@@ -164,7 +165,7 @@
     if (!opts.append) content.innerHTML = "";
     content.classList.add("loading");
     // 章节文件用绝对站点根路径，避开 <base>
-    fetch(SITE_ROOT + COURSES_DIR + "/" + state.courseId + "/lessons/" + lesson.file)
+    fetch(SITE_ROOT + COURSES_DIR + "/" + state.courseId + "/lessons/" + lesson.file + ASSET_V)
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
       .then(function (html) {
         var section = injectLesson(html, idx);
