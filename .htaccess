@@ -1,0 +1,7 @@
+<IfModule mod_headers.c>
+  # 课程阅读器为频繁迭代的静态资源，禁止浏览器/CDN 缓存，确保每次加载都是最新
+  <FilesMatch "\.(html|htm|css|js|json)$">
+    Header set Cache-Control "no-store, must-revalidate"
+    Header set Pragma "no-cache"
+  </FilesMatch>
+</IfModule>
