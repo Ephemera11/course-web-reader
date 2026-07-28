@@ -1,9 +1,11 @@
 {
   "id": "agent-foundations",
-  "title": "Agent Foundations · 从零理解 Agent",
+  "title": "Agent Foundations",
+  "subtitle": "从零理解 Agent · 后端工程师入门",
+  "cover": "oxblood",
   "lessons": [
-    {"n": "0001", "file": "lessons/0001-what-is-an-agent.html", "title": "Agent 到底是什么"},
-    {"n": "0002", "file": "lessons/0002-agent-loop-and-paradigms.html", "title": "Agent 循环解剖 + 范式图谱"},
-    {"n": "0003", "file": "lessons/0003-tool-calling.html", "title": "Tool Calling：模型与世界的接口"}
+    {"n": "0001", "file": "0001-what-is-an-agent.html", "title": "Agent 到底是什么"},
+    {"n": "0002", "file": "0002-agent-loop-and-paradigms.html", "title": "Agent 循环解剖 + 范式图谱"},
+    {"n": "0003", "file": "0003-tool-calling.html", "title": "Tool Calling：模型与世界的接口"}
   ]
 }
