@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0004 · 五种 Workflow 范式：可控编排的精华</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --sub:#5b5b5b; --line:#e3e3e0; --bg:#fbfbf9;
+    --accent:#9a3412; --soft:#f3efe7; --ok:#166534; --bad:#b91c1c; --blue:#1e40af;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  h3{font-size:16px;margin:18px 0 6px;color:var(--blue);}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:#2c2c2c;}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:#fffdf4;border-color:#e7d9a8;}
+  code{background:#efece4;padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12.5px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:#fff;}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 150px;font-weight:650;color:var(--blue);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .pit{display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0;}
+  .pit div{border:1px solid var(--line);border-radius:10px;padding:11px 15px;background:#fff;font-size:14.5px;}
+  .pit .x{color:var(--bad);font-weight:700;}
+  .pit .ok{color:var(--ok);font-weight:700;}
+  .pcard{border:1px solid var(--line);border-radius:12px;padding:14px 18px;background:#fff;margin:14px 0;}
+  .pcard h3{margin:0 0 4px;}
+  .pcard .en{color:var(--accent);font-weight:600;font-size:12.5px;margin-left:4px;}
+  .pcard .when{color:var(--ok);font-size:13.5px;margin:6px 0 2px;}
+  .pcard .no{color:var(--sub);font-size:13.5px;}
+  .timeline{border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:12px 0;background:#fff;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;white-space:pre;overflow:auto;color:#222;}
+  /* quiz */
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:#fff;}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:#fff;border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:#eafaf0;border-color:#9bd9b0;color:var(--ok);font-weight:600;}
+  .opt.wrong{background:#fdeaea;border-color:#e9b4b4;color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:#fffaf4;font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #e6c9b8;}
+  @media print{body{background:#fff}.wrap{padding:0}.pit div{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0004 · 五种 Workflow 范式：可控编排的精华</h1>
+  <div class="meta">Agent Foundations · 第 4 章 · 主推源：Anthropic《Building Effective Agents》</div>
+
+  <p class="lead">上一课我们搭好了「工具」这块地基——模型终于能调用外部能力。但光有工具还不够：<b>怎么把多次 LLM 调用和工具调用组织成一条可靠的流程</b>，才是工程的关键。</p>
+
+  <p>Anthropic 的核心主张是：<b>绝大多数生产场景，用「工作流（Workflow）」就够了，根本不需要完全自主的 Agent</b>。Workflow 是「预先定义好控制流」的 LLM 系统；Agent 是「模型自己决定控制流」的系统。本课把 Workflow 的五种范式逐一拆开，让你建立可落地的「选型直觉」——这正是 Mission 里「能判断一个需求该用简单 prompt / workflow / agent」那条成功标准。</p>
+
+  <div class="box q">
+    <b>给 PHP 工程师的锚点</b>：五种 Workflow 其实对应你早就熟悉的后端控制流——
+    <ul style="margin:6px 0 0">
+      <li><b>Prompt Chaining</b> ≈ 管道（Pipeline）/ 责任链</li>
+      <li><b>Routing</b> ≈ 网关路由 / 策略模式分发</li>
+      <li><b>Parallelization</b> ≈ 并发请求 / 扇出（fan-out）</li>
+      <li><b>Orchestrator-Workers</b> ≈ 主从任务分发（Master-Worker）</li>
+      <li><b>Evaluator-Optimizer</b> ≈ 评审闭环（生成 → 校验 → 修订）</li>
+    </ul>
+    区别只在于：每一步的「worker」是 LLM + 工具，而不是普通函数。
+  </div>
+
+  <h2>1. Prompt Chaining（提示链 / 流水线）</h2>
+  <p>把一个任务拆成<b>一串有序步骤</b>，上一步的输出作为下一步的输入。每一步可以有不同的提示词，甚至在不同模型间流转。本质上是「把复杂提示词拆小、分步验证」。</p>
+  <div class="timeline">user
+  │
+  ▼
+[LLM #1: 提取要点] ──文本摘要──▶ [LLM #2: 据摘要写文案] ──文案──▶ [LLM #3: 润色/合规检查]
+  ▼
+final output</div>
+  <div class="schema">
+    <div class="row"><span class="key">何时用</span><span class="val">任务能被<b>清晰拆成固定子步骤</b>，且上一步结果能稳定作为下一步输入（如：摘要→翻译→语气改写）</span></div>
+    <div class="row"><span class="key">何时不用</span><span class="val">步骤间依赖动态、顺序会随输入变化——那该用 Orchestrator-Workers 或 Agent</span></div>
+    <div class="row"><span class="key">真实例子</span><span class="val">「把会议录音转写→提取待办→生成 Jira 工单描述」；营销文案「大纲→正文→审校」</span></div>
+  </div>
+  <p class="lead" style="font-size:15px;color:var(--sub)">坑：别为了链式而链式。如果一步就能做对，拆开反而增加延迟与出错面。</p>
+
+  <h2>2. Routing（路由）</h2>
+  <p>先由一个「分类器」LLM 判断输入属于哪一类，再<b>分发</b>给专门处理该类的最小化 prompt / 模型 / 工具集。核心思想：<b>不同问题用不同专家，别让一个通用提示词硬扛所有情况</b>。</p>
+  <div class="timeline">            user query
+                │
+                ▼
+        [LLM 分类器: 判断类型]
+           ┌─────┼─────┐
+           ▼     ▼     ▼
+       [技术支持] [账单] [售前]
+       专用 prompt  专用 prompt  专用 prompt</div>
+  <div class="schema">
+    <div class="row"><span class="key">何时用</span><span class="val">输入有明显<b>类别差异</b>，且每类需要截然不同的处理（语气、知识、工具）</span></div>
+    <div class="row"><span class="key">何时不用</span><span class="val">问题高度同质、只是参数不同——直接一个 prompt 即可</span></div>
+    <div class="row"><span class="key">真实例子</span><span class="val">客服系统按意图路由到退款/技术/投诉专员；代码助手按语言路由到对应 linter</span></div>
+  </div>
+
+  <h2>3. Parallelization（并行化）</h2>
+  <p>同一任务<b>同时跑多个 LLM 调用</b>，再汇总。两种形态：① <b>分片（sectioning）</b>把一个大输入拆成几块并行处理；② <b>投票（voting）</b>同一输入跑多次取多数/最优。利用的是「LLM 单次有随机性、并行可提质量与速度」。</p>
+  <div class="timeline">            user query
+                │
+       ┌────────┼────────┐
+       ▼        ▼        ▼
+   [LLM A]   [LLM B]   [LLM C]     ← 并行（分片 or 投票）
+       └────────┼────────┘
+                ▼
+         [聚合: 合并 / 多数决]</div>
+  <div class="schema">
+    <div class="row"><span class="key">何时用</span><span class="val">① 任务可无依赖拆分（长文档分段摘要）；② 需要「多次采样投票」提升稳健性（安全审查、答案校验）</span></div>
+    <div class="row"><span class="key">何时不用</span><span class="val">步骤间有强依赖、必须串行——用 Chaining</span></div>
+    <div class="row"><span class="key">真实例子</span><span class="val">「12 篇论文同时摘要再合并」；「同一道数学题跑 5 次取一致答案」做置信校验</span></div>
+  </div>
+
+  <h2>4. Orchestrator-Workers（编排者-工作者）</h2>
+  <p>一个「编排者」LLM <b>动态</b>读输入，决定要派发哪些子任务、交给哪些 worker，再汇总结果。与 Routing 的区别在于：<b>路由是固定分支，这里是运行时动态拆解</b>，子任务数量和类型事先未知。</p>
+  <div class="timeline">            user query (复杂)
+                │
+                ▼
+      [Orchestrator LLM: 拆解子任务]
+           ┌────┼────┐
+           ▼    ▼    ▼     ← worker 数量/类型由编排者临时决定
+       [W1]  [W2]  [W3]
+           └────┼────┘
+                ▼
+      [Orchestrator: 汇总成最终答案]</div>
+  <div class="schema">
+    <div class="row"><span class="key">何时用</span><span class="val">任务复杂、<b>无法预先规定拆解方式</b>，需要模型临场决定怎么分活（如：改动涉及多个文件、需多方调研）</span></div>
+    <div class="row"><span class="key">何时不用</span><span class="val">子任务结构固定——用 Routing 更简单可控</span></div>
+    <div class="row"><span class="key">真实例子</span><span class="val">编程 Agent：读 issue → 决定改哪些文件 → 并行改 → 汇总 PR 描述</span></div>
+  </div>
+
+  <h2>5. Evaluator-Optimizer（评估者-优化者）</h2>
+  <p>一个 LLM <b>生成</b>，另一个 LLM 当<b>评审</b>给出反馈，生成方据反馈<b>迭代改进</b>，直到评审通过或达上限。这是「人在环外」的自动质量闭环。</p>
+  <div class="timeline">   [Generator LLM] ──产出──▶ [Evaluator LLM]
+        ▲                        │
+        │   反馈/打分/修改意见      │ 未达标
+        └────────────────────────┘
+              （循环直到通过）</div>
+  <div class="schema">
+    <div class="row"><span class="key">何时用</span><span class="val">有<b>明确可验证标准</b>（编译通过、测试绿、篇幅达标），且一次生成难达标的场景</span></div>
+    <div class="row"><span class="key">何时不用</span><span class="val">标准模糊、评审者也无法判断好坏——会陷入空转</span></div>
+    <div class="row"><span class="key">真实例子</span><span class="val">「生成代码→跑单测→修到全绿」；「写文案→按品牌规范评分→重写」</span></div>
+  </div>
+
+  <h2>选型决策小抄（回到 Mission 成功标准）</h2>
+  <div class="box">
+    面对一个需求，按这个顺序问自己：
+    <ol style="margin:8px 0 0">
+      <li><b>一个 prompt 能搞定吗？</b> 能 → 别上框架，直接写。</li>
+      <li><b>步骤固定且顺序已知？</b> → Prompt Chaining。</li>
+      <li><b>输入分几类、每类处理不同？</b> → Routing。</li>
+      <li><b>能并行、或要投票提稳健？</b> → Parallelization。</li>
+      <li><b>子任务结构运行时才知？</b> → Orchestrator-Workers。</li>
+      <li><b>有明确可验证标准、要反复打磨？</b> → Evaluator-Optimizer。</li>
+      <li><b>以上都不行，且需要模型自己决定接下来做什么？</b> → 才上 Autonomous Agent Loop（第 2 课）。</li>
+    </ol>
+    <p style="margin:10px 0 0;color:var(--sub);font-size:14px">记住 Anthropic 的原则：<b>能简单就别复杂</b>。Workflow 可控、可测、便宜；Agent 灵活但难预测、贵、难 debug。</p>
+  </div>
+
+  <h2>小测：检验你真的区分开了</h2>
+  <div class="quiz">
+    <div class="qh">选择题（每题独立，点选项看反馈）</div>
+
+    <div class="qblock" id="q4-block-1">
+      <p><b>Q1.</b> 一个客服系统要先判断用户留言是「退款 / 技术故障 / 投诉」，再交给对应专员用各自的话术和工具处理。最适合的范式是？</p>
+      <button class="opt" data-correct="false" onclick="Q4.answer(1,false,this)">A. Prompt Chaining</button>
+      <button class="opt" data-correct="true" onclick="Q4.answer(1,true,this)">B. Routing</button>
+      <button class="opt" data-correct="false" onclick="Q4.answer(1,false,this)">C. Parallelization</button>
+      <button class="opt" data-correct="false" onclick="Q4.answer(1,false,this)">D. Evaluator-Optimizer</button>
+      <div class="fb" id="q4-fb-1"></div>
+    </div>
+
+    <div class="qblock" id="q4-block-2">
+      <p><b>Q2.</b> 一个编程任务需要读 issue、<b>临时决定</b>改哪几个文件、并行修改后再汇总成 PR。子任务数量和类型事先无法确定。应优先用？</p>
+      <button class="opt" data-correct="false" onclick="Q4.answer(2,false,this)">A. Routing</button>
+      <button class="opt" data-correct="false" onclick="Q4.answer(2,false,this)">B. Parallelization</button>
+      <button class="opt" data-correct="true" onclick="Q4.answer(2,true,this)">C. Orchestrator-Workers</button>
+      <button class="opt" data-correct="false" onclick="Q4.answer(2,false,this)">D. Prompt Chaining</button>
+      <div class="fb" id="q4-fb-2"></div>
+    </div>
+
+    <div class="qblock" id="q4-block-3">
+      <p><b>Q3.</b> 下列哪种情况<b>最不该</b>一上来就用完全自主的 Agent Loop？</p>
+      <button class="opt" data-correct="false" onclick="Q4.answer(3,false,this)">A. 需要模型自己探索未知、决定下一步动作</button>
+      <button class="opt" data-correct="true" onclick="Q4.answer(3,true,this)">B. 步骤完全固定、输入分三类、每类走专用提示词</button>
+      <button class="opt" data-correct="false" onclick="Q4.answer(3,false,this)">C. 子任务结构运行时才清楚</button>
+      <button class="opt" data-correct="false" onclick="Q4.answer(3,false,this)">D. 无明显可复用流程、需持续感知环境</button>
+      <div class="fb" id="q4-fb-3"></div>
+    </div>
+  </div>
+
+  <div class="reminder">
+    <b>向你的 Agent 老师提问</b>：如果某一题拿不准、或想知道「我的真实业务场景 X 该选哪种范式」，直接把问题丢给对话里的 Agent——它可以结合你的 PHP 后端背景给具体建议，也能补讲任意一种范式的代码骨架（概念清晰后再动手）。
+  </div>
+
+  <footer>
+    课程 0004 · 五种 Workflow 范式 · 主推源：
+    <a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noopener">Anthropic — Building Effective Agents</a>
+    <br>下一课预告：把 Workflow 与 Agent 放到同一张「复杂度光谱」上，并给出「何时该收手、别上 Agent」的工程纪律。
+  </footer>
+</div>
+
+<script>
+const Q4 = {
+  answer: function(qn, correct, btn){
+    var block = document.getElementById("q4-block-" + qn);
+    var buttons = block.querySelectorAll(".opt");
+    buttons.forEach(function(b){ b.disabled = true; });
+    var fb = document.getElementById("q4-fb-" + qn);
+    if(correct){
+      btn.classList.add("correct");
+      fb.textContent = "✓ 正确。";
+      fb.className = "fb ok";
+    } else {
+      btn.classList.add("wrong");
+      fb.textContent = "✗ 再想想。";
+      fb.className = "fb bad";
+      // 同时高亮正确答案
+      buttons.forEach(function(b){ if(b.getAttribute("data-correct")==="true") b.classList.add("correct"); });
+    }
+  }
+};
+</script>
+</body>
+</html>
