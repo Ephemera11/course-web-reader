@@ -1,13 +1,19 @@
-/* app.js — 课程阅读器外壳核心逻辑
- * 职责：① 首页书架（书籍卡片，fetch courses/manifest.json -> 各 courses/<id>/index.json）
- *       ② 阅读器：参数解析 / fetch 注入 / 滚到底自动续读 / 主题三态 / 书签 / 返回书架 / 脚本重执
- * 纯静态，无后端；书签存 localStorage。
+/* app.js — 课程阅读器外壳核心逻辑 (v3)
+ * 一门课 = 一本书；每节课 = 一章。书架每门课一本，点进阅读器用上下章/目录翻。
+ * 关键：所有 fetch 用绝对 SITE_ROOT 路径，避开 <base> 对 fetch 的影响（曾导致 404）。
  */
 (function () {
   "use strict";
 
+  // 站点根：reader.html 设了 <base href=".../lessons/">(给注入正文用)，
+  // 因此 fetch 课程清单/章节必须用绝对站点根，否则会被 base 改写而 404。
+  var SITE_ROOT = (function () {
+    var here = location.pathname.replace(/reader\.html.*$/, "");
+    if (!here.endsWith("/")) here += "/";
+    return here;
+  })();
   var COURSES_DIR = "courses";
-  var MANIFEST = COURSES_DIR + "/manifest.json";
+  var MANIFEST = SITE_ROOT + COURSES_DIR + "/manifest.json";
   var BM_KEY = "cwr_bookmarks";   // {"<courseId>/<file>": true}
   var THEME_KEY = "cwr_theme";    // "light" | "dark" | "auto"
 
@@ -43,7 +49,7 @@
     if (mq && mq.addEventListener) mq.addEventListener("change", syncAuto);
   }
 
-  /* ---------- 书架（首页，书籍形式） ---------- */
+  /* ---------- 书架（首页，一门课一本书） ---------- */
   var COVER_COLORS = {
     oxblood:"#7c2d12", indigo:"#312e81", forest:"#14532d",
     slate:"#1e293b", teal:"#0f766e", plum:"#581c87", amber:"#92400e"
@@ -51,7 +57,7 @@
   function renderShelf() {
     var row = $("#bookRow");
     var note = $("#shelfNote");
-    if (!row) return; // 不是首页
+    if (!row) return;
     fetch(MANIFEST)
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (ids) {
@@ -59,27 +65,25 @@
         var bm = loadBookmarks();
         var pending = ids.length;
         ids.forEach(function (id) {
-          fetch(COURSES_DIR + "/" + id + "/index.json")
+          fetch(SITE_ROOT + COURSES_DIR + "/" + id + "/index.json")
             .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
             .then(function (meta) {
-              row.innerHTML = ""; // 移除初始骨架
               var color = COVER_COLORS[meta.cover] || COVER_COLORS.oxblood;
               var marked = meta.lessons.filter(function (l) { return bm[bmKey(id, l.file)]; }).length;
-              meta.lessons.forEach(function (l) {
-                var on = bm[bmKey(id, l.file)] ? " bm" : "";
-                var a = document.createElement("a");
-                a.className = "book" + on;
-                a.href = "reader.html?course=" + encodeURIComponent(id) +
-                         "&lesson=" + encodeURIComponent(l.file);
-                a.style.setProperty("--bc", color);
-                a.innerHTML =
-                  '<span class="bm-dot">🔖</span>' +
-                  '<span class="spine-n">' + (meta.title.split(" ")[0]) + ' · ' + l.n + '</span>' +
-                  '<span class="spine-t">' + l.title + '</span>' +
-                  '<span class="spine-line"></span>';
-                a.title = l.title + (marked ? "（已收藏 " + marked + "/" + meta.lessons.length + "）" : "");
-                row.appendChild(a);
-              });
+              var total = meta.lessons.length;
+              var a = document.createElement("a");
+              a.className = "book" + (marked > 0 ? " bm" : "");
+              a.href = "reader.html?course=" + encodeURIComponent(id) +
+                       "&lesson=" + encodeURIComponent(meta.lessons[0].file);
+              a.style.setProperty("--bc", color);
+              a.innerHTML =
+                '<span class="bm-dot">🔖</span>' +
+                '<span class="cover-kicker">' + (meta.kicker || "COURSE") + '</span>' +
+                '<span class="cover-t">' + meta.title + '</span>' +
+                '<span class="cover-meta">' + total + ' 章 · 已读 ' + marked + '/' + total + '</span>' +
+                '<span class="spine-line"></span>';
+              a.title = meta.title + "（" + total + " 章）";
+              row.appendChild(a);
             })
             .catch(function (err) {
               console.error("课程加载失败:", id, err);
@@ -107,8 +111,7 @@
     return { course: q.get("course"), lesson: q.get("lesson") };
   }
 
-  // 注入一节：提取 head 的 <style>（剥离 :root 主题变量）+ body 正文；
-  // 对 id 做命名空间化，避免多节同 id 冲突（如 quiz）。
+  // 注入一节：提取 head 的 <style>（剥离 :root 主题变量）+ body 正文；id 命名空间化防冲突。
   function injectLesson(html, idx) {
     var doc = new DOMParser().parseFromString(html, "text/html");
     var section = document.createElement("section");
@@ -150,7 +153,8 @@
     var content = $("#content");
     if (!opts.append) content.innerHTML = "";
     content.classList.add("loading");
-    fetch(state.baseHref + lesson.file)
+    // 章节文件用绝对站点根路径，避开 <base>
+    fetch(SITE_ROOT + COURSES_DIR + "/" + state.courseId + "/lessons/" + lesson.file)
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
       .then(function (html) {
         var section = injectLesson(html, idx);
@@ -184,7 +188,7 @@
 
   function updateBar(lesson) {
     var t = $("#barTitle");
-    if (t) t.textContent = state.meta.title + " · " + lesson.n;
+    if (t) t.textContent = state.meta.title + " · 第 " + (state.idx + 1) + " 章";
     var bm = loadBookmarks();
     var on = !!bm[bmKey(state.courseId, lesson.file)];
     var btn = $("#bmBtn");
@@ -192,23 +196,40 @@
     var prev = $("#prevBtn"), next = $("#nextBtn");
     if (prev) prev.disabled = state.idx <= 0;
     if (next) next.disabled = state.idx + 1 >= state.lessons.length;
+    renderToc();
+  }
+
+  function renderToc() {
+    var menu = $("#tocMenu");
+    if (!menu || !state) return;
+    var html = '<div class="toc-h">目录 · ' + state.meta.title + '</div>';
+    state.lessons.forEach(function (l, i) {
+      html += '<button data-i="' + i + '" class="' + (i === state.idx ? "cur" : "") + '">' +
+              (i + 1) + '. ' + l.title + '</button>';
+    });
+    menu.innerHTML = html;
+    $all("button", menu).forEach(function (b) {
+      b.addEventListener("click", function () {
+        menu.classList.remove("open");
+        loadLessonAt(parseInt(b.getAttribute("data-i"), 10), {});
+      });
+    });
   }
 
   function initReader() {
     var p = parseParams();
     if (!p.course || !p.lesson) { $("#content").textContent = "缺少 course / lesson 参数。"; return; }
-    state = { courseId: p.course, lessons: [], idx: 0, meta: null, loading: false,
-              baseHref: COURSES_DIR + "/" + p.course + "/lessons/" };
+    state = { courseId: p.course, lessons: [], idx: 0, meta: null, loading: false };
+    // base 仅用于让注入课页里的相对链接(../reference/)正确解析，不影响 fetch(用绝对根)
     var base = document.createElement("base");
-    base.href = state.baseHref;
+    base.href = SITE_ROOT + COURSES_DIR + "/" + p.course + "/lessons/";
     document.head.appendChild(base);
 
-    fetch(COURSES_DIR + "/" + p.course + "/index.json")
+    fetch(SITE_ROOT + COURSES_DIR + "/" + p.course + "/index.json")
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (meta) {
         state.meta = meta;
         state.lessons = meta.lessons;
-        // file 已是纯文件名（不含 lessons/ 前缀），与 baseHref 拼接即正确路径
         var idx = meta.lessons.findIndex(function (l) { return l.file === p.lesson; });
         if (idx < 0) idx = 0;
         loadLessonAt(idx, {});
@@ -218,6 +239,8 @@
       });
 
     $("#backBtn").addEventListener("click", function () { location.href = "index.html"; });
+    $("#tocBtn").addEventListener("click", function (e) { e.stopPropagation(); $("#tocMenu").classList.toggle("open"); });
+    document.addEventListener("click", function () { $("#tocMenu").classList.remove("open"); });
     $("#prevBtn").addEventListener("click", function () { if (state.idx > 0) loadLessonAt(state.idx - 1, {}); });
     $("#nextBtn").addEventListener("click", function () { if (state.idx + 1 < state.lessons.length) loadLessonAt(state.idx + 1, {}); });
     $("#bmBtn").addEventListener("click", function () {

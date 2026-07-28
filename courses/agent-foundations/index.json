@@ -1,7 +1,7 @@
 {
   "id": "agent-foundations",
   "title": "Agent Foundations",
-  "subtitle": "从零理解 Agent · 后端工程师入门",
+  "kicker": "COURSE",
   "cover": "oxblood",
   "lessons": [
     {"n": "0001", "file": "0001-what-is-an-agent.html", "title": "Agent 到底是什么"},
