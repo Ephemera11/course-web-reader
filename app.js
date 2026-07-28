@@ -62,6 +62,7 @@
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
       .then(function (ids) {
         if (!ids.length) { row.innerHTML = '<div class="shelf-note">暂无课程。</div>'; return; }
+        row.innerHTML = "";  // 清空骨架占位（否则会与真实书本并存）
         var bm = loadBookmarks();
         var pending = ids.length;
         ids.forEach(function (id) {
@@ -165,7 +166,7 @@
         state.loading = false;
         updateBar(lesson);
         history.replaceState(null, "",
-          "reader.html?course=" + encodeURIComponent(state.courseId) +
+          SITE_ROOT + "reader.html?course=" + encodeURIComponent(state.courseId) +
           "&lesson=" + encodeURIComponent(lesson.file));
         if (opts.append) maybeLoadNext();
       })
@@ -244,7 +245,7 @@
         $("#content").textContent = "课程清单加载失败：" + p.course + " (" + err.message + ")";
       });
 
-    $("#backBtn").addEventListener("click", function () { location.href = "index.html"; });
+    $("#backBtn").addEventListener("click", function () { location.href = SITE_ROOT + "index.html"; });
     $("#tocBtn").addEventListener("click", function (e) { e.stopPropagation(); $("#tocMenu").classList.toggle("open"); });
     document.addEventListener("click", function () { $("#tocMenu").classList.remove("open"); });
     $("#prevBtn").addEventListener("click", function () { if (state.idx > 0) loadLessonAt(state.idx - 1, {}); });
