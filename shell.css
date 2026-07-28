@@ -4,11 +4,17 @@
   --accent:#9a3412; --soft:#ece3d2; --bar:#fbf7ee; --shadow:rgba(60,42,20,.14);
   --shelf:#5a3d28; --shelf-edge:#3d2818;
   --book-ink:#f7f1e6;   /* 书封面文字：固定奶白，不受主题影响 */
+  /* 课程内容表面/语义色（浅色） */
+  --card:#ffffff; --card2:#fbf7ee;
+  --ok:#166534; --bad:#b91c1c; --blue:#1e40af;
 }
 [data-theme="dark"]{
   --bg:#16140f; --ink:#ece4d4; --sub:#9a8f7c; --line:#2c271f;
   --accent:#e08a4a; --soft:#221e17; --bar:#1c1913; --shadow:rgba(0,0,0,.5);
   --shelf:#2a2118; --shelf-edge:#15110b;
+  /* 课程内容表面/语义色（暗色） */
+  --card:#211c16; --card2:#1a1610;
+  --ok:#4ade80; --bad:#f87171; --blue:#93b4ff;
 }
 * { box-sizing:border-box; }
 html,body{ margin:0; min-height:100%; }

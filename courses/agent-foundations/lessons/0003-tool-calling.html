@@ -5,10 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>课程 0003 · Tool Calling：模型与世界的接口</title>
 <style>
-  :root{
-    --ink:#1a1a1a; --sub:#5b5b5b; --line:#e3e3e0; --bg:#fbfbf9;
-    --accent:#9a3412; --soft:#f3efe7; --ok:#166534; --bad:#b91c1c; --blue:#1e40af;
-  }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
@@ -18,29 +14,29 @@
   .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
   h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
   p{margin:10px 0;}
-  .lead{font-size:17px;color:#2c2c2c;}
+  .lead{font-size:17px;color:var(--ink);}
   .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
-  .box.q{background:#fffdf4;border-color:#e7d9a8;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
   code{background:#efece4;padding:1px 6px;border-radius:5px;font-size:13.5px;
     font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
   pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
     font-size:12.5px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
   pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
-  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:#fff;}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
   .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
   .schema .row:first-of-type{border-top:none;}
   .schema .key{flex:0 0 150px;font-weight:650;color:var(--blue);font-size:14px;}
   .schema .val{flex:1;font-size:14.5px;}
   .pit{display:grid;grid-template-columns:1fr;gap:10px;margin:14px 0;}
-  .pit div{border:1px solid var(--line);border-radius:10px;padding:11px 15px;background:#fff;font-size:14.5px;}
+  .pit div{border:1px solid var(--line);border-radius:10px;padding:11px 15px;background:var(--card);font-size:14.5px;}
   .pit .x{color:var(--bad);font-weight:700;}
   .pit .ok{color:var(--ok);font-weight:700;}
   /* quiz */
-  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:#fff;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
   .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
   .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
   .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
-    background:#fff;border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
     font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
   .opt:hover{border-color:var(--accent)}
   .opt.correct{background:#eafaf0;border-color:#9bd9b0;color:var(--ok);font-weight:600;}
@@ -49,9 +45,9 @@
   .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
   .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
   .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
-    background:#fffaf4;font-size:14.5px;}
+    background:var(--card2);font-size:14.5px;}
   footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
-  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #e6c9b8;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
   @media print{body{background:#fff}.wrap{padding:0}.pit div{break-inside:avoid}}
 </style>
 </head>

@@ -5,10 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>课程 0002 · Agent 循环解剖 + 范式图谱</title>
 <style>
-  :root{
-    --ink:#1a1a1a; --sub:#5b5b5b; --line:#e3e3e0; --bg:#fbfbf9;
-    --accent:#9a3412; --soft:#f3efe7; --ok:#166534; --bad:#b91c1c; --blue:#1e40af;
-  }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
@@ -18,9 +14,9 @@
   .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
   h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
   p{margin:10px 0;}
-  .lead{font-size:17px;color:#2c2c2c;}
+  .lead{font-size:17px;color:var(--ink);}
   .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
-  .box.q{background:#fffdf4;border-color:#e7d9a8;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
   code{background:#efece4;padding:1px 6px;border-radius:5px;font-size:13.5px;
     font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;display:block;margin:8px 0;}
   pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
@@ -28,27 +24,27 @@
   pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075}
   .cycle{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0;}
   @media(max-width:640px){.cycle{grid-template-columns:1fr 1fr}}
-  .cycle div{border:1px solid var(--line);border-radius:10px;padding:12px 10px;text-align:center;background:#fff;font-size:14px;}
+  .cycle div{border:1px solid var(--line);border-radius:10px;padding:12px 10px;text-align:center;background:var(--card);font-size:14px;}
   .cycle .num{display:block;font-size:12px;color:var(--accent);font-weight:700;}
   .grid2{display:grid;grid-template-columns:1fr;gap:12px;margin:14px 0;}
-  .pcard{border:1px solid var(--line);border-radius:12px;padding:14px 18px;background:#fff;}
-  .pcard.agent{border-color:#cbb26a;background:#fffdf4;}
+  .pcard{border:1px solid var(--line);border-radius:12px;padding:14px 18px;background:var(--card);}
+  .pcard.agent{border-color:var(--accent);background:var(--card2);}
   .pcard h3{margin:0 0 4px;font-size:16px;}
   .pcard .en{color:var(--accent);font-weight:500;font-size:12px;margin-left:6px;}
   .pcard .when{color:var(--ok);font-size:13.5px;margin:6px 0 2px;}
   .pcard .no{color:var(--sub);font-size:13.5px;}
-  .pcard .ex{font-size:13px;color:#333;background:var(--soft);border-radius:8px;padding:6px 10px;margin-top:8px;}
-  .dt{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:#fff;}
+  .pcard .ex{font-size:13px;color:var(--sub);background:var(--soft);border-radius:8px;padding:6px 10px;margin-top:8px;}
+  .dt{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
   .dt .row{display:flex;gap:12px;padding:9px 0;border-top:1px dashed var(--line);}
   .dt .row:first-of-type{border-top:none;}
   .dt .key{flex:0 0 132px;font-weight:650;color:var(--blue);font-size:14px;}
   .dt .val{flex:1;font-size:14.5px;}
   /* quiz */
-  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:#fff;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
   .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
   .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
   .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
-    background:#fff;border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
     font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
   .opt:hover{border-color:var(--accent)}
   .opt.correct{background:#eafaf0;border-color:#9bd9b0;color:var(--ok);font-weight:600;}
@@ -57,9 +53,9 @@
   .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
   .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
   .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
-    background:#fffaf4;font-size:14.5px;}
+    background:var(--card2);font-size:14.5px;}
   footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
-  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #e6c9b8;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
   @media print{body{background:#fff}.wrap{padding:0}.pcard{break-inside:avoid}}
 </style>
 </head>
