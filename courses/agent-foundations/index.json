@@ -4,11 +4,40 @@
   "kicker": "COURSE",
   "cover": "oxblood",
   "lessons": [
-    {"n": "0001", "file": "0001-what-is-an-agent.html", "title": "Agent 到底是什么"},
-    {"n": "0002", "file": "0002-agent-loop-and-paradigms.html", "title": "Agent 循环解剖 + 范式图谱"},
-    {"n": "0003", "file": "0003-tool-calling.html", "title": "Tool Calling：模型与世界的接口"},
-    {"n": "0004", "file": "0004-workflow-patterns.html", "title": "五种 Workflow 范式：可控编排的精华"},
-    {"n": "0005", "file": "0005-complexity-spectrum.html", "title": "复杂度光谱：从 Prompt 到 Agent 的选型决策"},
-    {"n": "0006", "file": "0006-concept-wrapup-roadmap.html", "title": "概念收官：手搓最小 Agent 路线图"}
+    {
+      "n": "0001",
+      "file": "0001-what-is-an-agent.html",
+      "title": "Agent 到底是什么"
+    },
+    {
+      "n": "0002",
+      "file": "0002-agent-loop-and-paradigms.html",
+      "title": "Agent 循环解剖 + 范式图谱"
+    },
+    {
+      "n": "0003",
+      "file": "0003-tool-calling.html",
+      "title": "Tool Calling：模型与世界的接口"
+    },
+    {
+      "n": "0004",
+      "file": "0004-workflow-patterns.html",
+      "title": "五种 Workflow 范式：可控编排的精华"
+    },
+    {
+      "n": "0005",
+      "file": "0005-complexity-spectrum.html",
+      "title": "复杂度光谱：从 Prompt 到 Agent 的选型决策"
+    },
+    {
+      "n": "0006",
+      "file": "0006-concept-wrapup-roadmap.html",
+      "title": "概念收官：手搓最小 Agent 路线图"
+    },
+    {
+      "n": "0007",
+      "file": "0007-php-single-llm-call.html",
+      "title": "动手第①步：PHP 单轮 LLM 调用"
+    }
   ]
 }

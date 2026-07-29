@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0007 · 动手第①步：PHP 单轮 LLM 调用</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12.5px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .checklist{list-style:none;padding:0;}
+  .checklist li{margin:6px 0;font-size:14.5px;}
+  .checklist li::before{content:"☐ ";color:var(--accent);font-weight:700;}
+  /* quiz */
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0007 · 动手第①步：PHP 单轮 LLM 调用</h1>
+  <div class="meta">Agent Foundations · 动手阶段第 1 课 · 预计 12 分钟</div>
+
+  <p class="lead">概念层结束了。从这节课开始，你不再只是"知道 Agent 是什么"——你要亲手跑出第一条代码链路。<b>第①步的目标极小：用你最熟的 PHP，发一条消息给 LLM，收到一句回复。</b>就这一件事，跑通就是胜利。</p>
+
+  <div class="box q">
+    <b>验收标准（来自 0006 路线图）：</b>能跑通一次 <code>model("你好") → "你好！"</code>。命令行能跑即可。用 curl 或脚本，看到回复就行。
+  </div>
+
+  <h2>1. 准备工作（5 分钟）</h2>
+  <div class="schema">
+    <div class="row"><span class="key">前提</span><span class="val">你有一个可用的 LLM API Key（OpenAI / DeepSeek / 其他兼容 OpenAI 格式的均可）。本课用 <b>DeepSeek</b> 做示例（便宜、国内直连），但你换成 OpenAI 只需改 URL 和 key。</span></div>
+    <div class="row"><span class="key">PHP 版本</span><span class="val">≥ 8.0（用到了 named arguments 和 match 表达式，但实际代码兼容 7.4+）。</span></div>
+    <div class="row"><span class="key">依赖</span><span class="val">纯 PHP 内置函数（<code>curl_*</code> / <code>file_get_contents</code> / <code>json_encode</code>），<b>零第三方包</b>。你可以之后换成 Guzzle，但第一步不想让你被 composer 分心。</span></div>
+  </div>
+
+  <h2>2. 最简代码（复制即用）</h2>
+  <p>把下面这个文件保存为 <code>step1.php</code>，填上你的 API key，在终端跑 <code>php step1.php</code>：</p>
+
+  <pre><span class="c">// step1.php — 最简单轮 LLM 调用（PHP 原生，零依赖）</span>
+<span class="k">&lt;?php</span>
+
+<span class="k">$</span>API_KEY = <span class="s">'sk-your-key-here'</span>;          <span class="c">// ① 换成你的 key</span>
+<span class="k">$</span>API_URL = <span class="s">'https://api.deepseek.com/v1/chat/completions'</span>;
+<span class="k">$</span>MODEL   = <span class="s">'deepseek-chat'</span>;                   <span class="c">// 用 OpenAI 的话改 model + URL</span>
+
+<span class="k">$</span>payload = [
+    <span class="s">'model'</span>    =&gt; <span class="k">$</span>MODEL,
+    <span class="s">'messages'</span> =&gt; [[<span class="s">'role'</span> =&gt; <span class="s">'user'</span>, <span class="s">'content'</span> =&gt; <span class="s">'你好，请用一句话介绍你自己'</span>]],
+    <span class="s">'max_tokens'</span> =&gt; 128,
+];
+
+<span class="k">$</span>ch = curl_init(<span class="k">$</span>API_URL);
+curl_setopt_array(<span class="k">$</span>ch, [
+    <span class="k">CURLOPT_POST</span>           =&gt; <span class="k">true</span>,
+    <span class="k">CURLOPT_HTTPHEADER</span>     =&gt; [
+        <span class="s">'Content-Type: application/json'</span>,
+        <span class="s">'Authorization: Bearer '</span> . <span class="k">$</span>API_KEY,
+    ],
+    <span class="k">CURLOPT_POSTFIELDS</span>     =&gt; json_encode(<span class="k">$</span>payload),
+    <span class="k">CURLOPT_RETURNTRANSFER</span> =&gt; <span class="k">true</span>,
+    <span class="k">CURLOPT_TIMEOUT</span>        =&gt; 30,
+]);
+
+<span class="k">$</span>body   = curl_exec(<span class="k">$</span>ch);
+<span class="k">$</span>status = curl_getinfo(<span class="k">$</span>ch, <span class="k">CURLINFO_HTTP_CODE</span>);
+curl_close(<span class="k">$</span>ch);
+
+<span class="k">if</span> (<span class="k">$</span>status !== 200) {
+    <span class="k">die</span>(<span class="s">"API 返回 HTTP </span><span class="k">$</span><span class="s">status</span><span class="se">\n</span><span class="s">"</span> . <span class="k">$</span>body);
+}
+
+<span class="k">$</span>data = json_decode(<span class="k">$</span>body, <span class="k">true</span>);
+<span class="k">$</span>reply = <span class="k">$</span>data[<span class="s">'choices'</span>][0][<span class="s">'message'</span>][<span class="s">'content'</span>];
+<span class="k">echo</span> <span class="s">"模型回复："</span> . <span class="k">$</span>reply . <span class="s">"</span><span class="se">\n</span><span class="s">"</span>;</pre>
+
+  <p>跑出来大概是：</p>
+  <pre>模型回复：你好！我是 DeepSeek，一个由深度求索公司创造的 AI 助手。</pre>
+
+  <h2>3. 逐行讲解（你不需要背，但需要"认得出"）</h2>
+  <div class="schema">
+    <div class="row"><span class="key">$payload</span><span class="val">这是发给 LLM 的 JSON body。四个核心字段：<code>model</code>（用哪个模型）、<code>messages</code>（对话数组，目前只有一条 user）、<code>max_tokens</code>（回复最长多少 token，防账单失控）。</span></div>
+    <div class="row"><span class="key">curl</span><span class="val">PHP 原生的 HTTP 客户端。3 步套路：<code>curl_init</code> → <code>curl_setopt_array</code>（设 header/body/timeout）→ <code>curl_exec</code>。你后端早就会了，这里只是把 JSON 用 POST 发到 LLM 的 API endpoint。</span></div>
+    <div class="row"><span class="key">$data</span><span class="val"><code>json_decode(..., true)</code> 把返回的 JSON 转成 PHP 关联数组。OpenAI 兼容 API 的回复结构固定：<code>choices[0].message.content</code> 就是模型说的文本。</span></div>
+  </div>
+
+  <div class="box">
+    <b>PHP 后端直觉</b>：这和你平时调的任何一个 REST API 一模一样——POST JSON → 读 response JSON → 取字段。区别只在于：这个 API 的"返回值"不是数据库记录，是一段模型生成的文本。<b>本质上，LLM 就是一个"输入文本、输出文本"的函数。</b>
+  </div>
+
+  <h2>4. 如果你用的是 OpenAI（而非 DeepSeek）</h2>
+  <p>改两行即可：</p>
+  <pre><span class="k">$</span>API_URL = <span class="s">'https://api.openai.com/v1/chat/completions'</span>;
+<span class="k">$</span>MODEL   = <span class="s">'gpt-4o-mini'</span>;  <span class="c">// 便宜够用</span></pre>
+  <p>其余代码一模一样——OpenAI / DeepSeek / 任何兼容 OpenAI 格式的提供商，都是同一套 <code>chat/completions</code> 协议。</p>
+
+  <h2>5. 验收清单（你真的跑通了才算）</h2>
+  <ul class="checklist">
+    <li>在终端跑 <code>php step1.php</code>，没有报错</li>
+    <li>看到了模型回复的一句话（不是乱码、不是空）</li>
+    <li>你能把 <code>'你好，请用一句话介绍你自己'</code> 改成任意文本，再跑一次，看到不同回复</li>
+    <li>你知道如何换模型 / 换 API provider</li>
+  </ul>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>跑通了就告诉我。</b>你可以说「跑通了，继续第②步」，我会带你在 PHP 里加 while 循环，把单轮调用升级成 Agent 循环骨架。如果卡在任何一步——API key 不对、curl 报错、返回格式看不懂——把终端的完整输出发我，我帮你排。
+  </div>
+
+  <footer>
+    课程 0007 · 动手第①步 · 回顾概念
+    <a href="0006-concept-wrapup-roadmap.html">0006 路线图</a> ·
+    下一课预告：加 while 循环 → Agent 骨架
+  </footer>
+</div>
+
+<script>
+const Q7 = [
+  {
+    q:"以下哪行代码拿到了模型回复的文本内容？",
+    opts:["curl_exec($ch)            ","$data['choices'][0]['message']['content']","$payload['messages']     ","curl_getinfo($ch, CURLINFO_HTTP_CODE)"],
+    ans:1,
+    ok:"对。OpenAI 兼容 API 的回复里，文本在 choices[0].message.content，json_decode 后就是 $data['choices'][0]['message']['content']。",
+    no:"不对。curl_exec 返回原始 JSON 字符串，还没解析；$payload 是请求体；curl_getinfo 是 HTTP 状态码。文本在解析后的 $data['choices'][0]['message']['content']。"
+  },
+  {
+    q:"这个最简脚本里，发给 LLM 的消息放在哪个字段？",
+    opts:["$payload['messages']        ","$payload['content']         ","$payload['input']           ","$payload['prompt']          "],
+    ans:0,
+    ok:"对。Chat Completions API 的消息数组在 messages 字段，每条消息含 role（user/assistant）和 content。",
+    no:"不对。OpenAI 格式的消息放在 messages 数组里，不是 content / input / prompt。"
+  },
+  {
+    q:"跑 step1.php 前，唯一必须改成自己的值的是？",
+    opts:["$MODEL 模型名                  ","$API_KEY 你的密钥               ","max_tokens 最大 token 数        ","CURLOPT_TIMEOUT 超时秒数        "],
+    ans:1,
+    ok:"对。模型名有默认值可跑（deepseek-chat），但 API_KEY 必须换成你自己的，否则 401 Unauthorized。",
+    no:"不对。模型名可以用默认值，token/超时有合理默认。唯一必须改的是 API_KEY——那是你的身份凭证。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q7.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>
