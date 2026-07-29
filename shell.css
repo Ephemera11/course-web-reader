@@ -124,6 +124,56 @@ body{
 
 .shelf-note{ margin-top:26px; color:var(--sub); font-size:13px; font-style:italic; }
 
+/* ===== 移动端自适应 ===== */
+
+@media (max-width:600px){
+  /* 工具栏：缩小间距、隐藏文字标签只留图标 */
+  .reader-bar{ gap:4px; padding:6px 8px; }
+  .reader-bar button{ font-size:12px; padding:4px 6px; white-space:nowrap; }
+  .reader-bar .btn-label{ display:none; }      /* 书架/目录只显图标 ‹ ☰ */
+  .reader-bar .title{ font-size:13px; }
+  .reader-bar .back{ font-weight:700; padding-left:4px; padding-right:4px; }
+  .reader-bar .bm{ font-size:14px; }
+  .reader-bar .nav{ gap:3px; }
+  .reader-bar .theme{ gap:2px; }
+  /* 目录下拉适配 */
+  .toc-menu{ top:44px; right:8px; min-width:200px; max-height:55vh; }
+
+  /* 内容区内边距 */
+  #content{ padding:16px 12px 80px; }
+
+  /* 覆盖注入课程样式（用 #content 提高特异度） */
+  #content .wrap{ padding:24px 14px 48px; }
+  #content h1{ font-size:24px; }
+  #content h2{ font-size:17px; margin:28px 0 8px; }
+  #content .lead{ font-size:15px; }
+  #content p{ font-size:15px; }
+  #content code{ font-size:12.5px; }
+  #content pre{ font-size:11px; padding:10px 12px; }
+  #content .schema .key{ flex:0 0 auto; min-width:60px; font-size:13px; }
+  #content .schema .val{ font-size:13.5px; }
+  #content .schema .row{ gap:8px; }
+  #content .pit div{ font-size:13.5px; padding:9px 12px; }
+  #content .pcard{ padding:12px 14px; }
+  #content .pcard h3{ font-size:15px; }
+  #content .box{ padding:12px 14px; font-size:15px; }
+  #content .reminder{ padding:12px 14px; font-size:13.5px; }
+  #content .quiz{ padding:6px 14px 14px; }
+  #content .opt{ font-size:14px; padding:8px 12px; }
+  #content .qh{ font-size:15px; }
+  #content .timeline{ font-size:11.5px; padding:10px 12px; }
+  #content footer{ font-size:12px; }
+}
+
+/* 超窄屏（<400px）：schema 卡片标签与正文上下堆叠，避免正文被挤成 6 字/行 */
+@media (max-width:400px){
+  #content .schema .row{ flex-direction:column; gap:2px; align-items:flex-start; }
+  #content .schema .key{ min-width:0; font-size:12.5px; border-bottom:1px dashed var(--line); padding-bottom:2px; margin-bottom:2px; }
+  #content .schema .val{ font-size:13px; }
+  #content .wrap{ padding:20px 12px 40px; }
+}
+
+/* 书架（已有） */
 @media (max-width:560px){
   .book{ width:150px; height:200px; }
   .skeleton-book{ width:150px; height:200px; }
