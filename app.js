@@ -261,6 +261,7 @@
     $("#nextBtn").addEventListener("click", function () { if (state.idx + 1 < state.lessons.length) loadLessonAt(state.idx + 1, {}); });
     $("#bmBtn").addEventListener("click", function () {
       var lesson = state.lessons[state.idx];
+      if (!lesson) return;  // 课程数据未就绪，忽略点击
       var bm = loadBookmarks();
       var key = bmKey(state.courseId, lesson.file);
       if (bm[key]) delete bm[key]; else bm[key] = true;
