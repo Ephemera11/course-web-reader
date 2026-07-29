@@ -225,10 +225,12 @@
   function renderToc() {
     var menu = $("#tocMenu");
     if (!menu || !state) return;
+    var bm = loadBookmarks();
     var html = '<div class="toc-h">目录 · ' + state.meta.title + '</div>';
     state.lessons.forEach(function (l, i) {
-      html += '<button data-i="' + i + '" class="' + (i === state.idx ? "cur" : "") + '">' +
-              (i + 1) + '. ' + l.title + '</button>';
+      var isBm = !!bm[bmKey(state.courseId, l.file)];
+      html += '<button data-i="' + i + '" class="' + (i === state.idx ? "cur" : "") + (isBm ? " bm" : "") + '">' +
+              (i + 1) + '. ' + l.title + (isBm ? ' 🔖' : '') + '</button>';
     });
     menu.innerHTML = html;
     $all("button", menu).forEach(function (b) {
