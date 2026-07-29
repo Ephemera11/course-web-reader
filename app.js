@@ -73,10 +73,17 @@
               var color = COVER_COLORS[meta.cover] || COVER_COLORS.oxblood;
               var marked = meta.lessons.filter(function (l) { return bm[bmKey(id, l.file)]; }).length;
               var total = meta.lessons.length;
+              var hasBm = marked > 0;
+              var jumpFile = meta.lessons[0].file;  // 默认第一章
+              if (hasBm) {
+                // 找到第一个已收藏的章节作为跳转目标
+                var firstBm = meta.lessons.find(function (l) { return bm[bmKey(id, l.file)]; });
+                if (firstBm) jumpFile = firstBm.file;
+              }
               var a = document.createElement("a");
-              a.className = "book" + (marked > 0 ? " bm" : "");
+              a.className = "book" + (hasBm ? " bm" : "");
               a.href = "reader.html?course=" + encodeURIComponent(id) +
-                       "&lesson=" + encodeURIComponent(meta.lessons[0].file);
+                       "&lesson=" + encodeURIComponent(jumpFile);
               a.style.setProperty("--bc", color);
               a.innerHTML =
                 '<span class="bm-dot">🔖</span>' +
@@ -264,9 +271,12 @@
       if (!lesson) return;  // 课程数据未就绪，忽略点击
       var bm = loadBookmarks();
       var key = bmKey(state.courseId, lesson.file);
-      if (bm[key]) delete bm[key]; else bm[key] = true;
+      var added;
+      if (bm[key]) { delete bm[key]; added = false; }
+      else { bm[key] = true; added = true; }
       saveBookmarks(bm);
       $("#bmBtn").classList.toggle("on", !!bm[key]);
+      toast(added ? "已收藏本节" : "已取消收藏");
     });
     window.addEventListener("scroll", function () { maybeLoadNext(); });
     $all(".reader-bar button[data-theme-set]").forEach(function (b) {
@@ -279,6 +289,19 @@
   }
 
   /* ---------- 启动 ---------- */
+  /* toast 轻提示 */
+  function toast(msg) {
+    var el = document.getElementById("toast") || (function () {
+      var d = document.createElement("div"); d.id = "toast"; document.body.appendChild(d); return d;
+    })();
+    el.textContent = msg;
+    el.classList.remove("out");
+    void el.offsetWidth;  // 强制回流，重新触发 CSS 动画
+    el.classList.add("in");
+    clearTimeout(el._tid);
+    el._tid = setTimeout(function () { el.classList.add("out"); }, 1600);
+  }
+
   function boot() {
     initTheme();
     if ($("#bookRow")) renderShelf();

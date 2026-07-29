@@ -128,6 +128,30 @@ body{
 
 .shelf-note{ margin-top:26px; color:var(--sub); font-size:13px; font-style:italic; }
 
+/* ===== toast 轻提示 ===== */
+#toast{
+  position:fixed; bottom:40px; left:50%; transform:translateX(-50%);
+  background:var(--ink); color:var(--bg); padding:10px 24px;
+  border-radius:20px; font-size:14px; font-weight:600;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  opacity:0; pointer-events:none; z-index:1000;
+  transition:opacity .25s ease, transform .25s ease;
+}
+#toast.in{ opacity:1; transform:translateX(-50%) translateY(-6px); }
+#toast.out{ opacity:0; transform:translateX(-50%) translateY(12px); }
+
+/* ===== 桌面端工具栏放大 ===== */
+@media (min-width:900px){
+  .reader-bar{ gap:14px; padding:12px 24px; }
+  .reader-bar button{ font-size:14px; padding:7px 14px; border-radius:10px; }
+  .reader-bar .title{ font-size:16px; }
+  .reader-bar .back{ font-size:14px; }
+  .reader-bar .bm{ font-size:18px; }
+  .reader-bar .theme button{ font-size:15px; padding:5px 10px; }
+  .reader-bar .nav button{ font-size:16px; padding:5px 12px; }
+  .reader-bar .nav{ gap:8px; }
+}
+
 /* ===== 移动端自适应 ===== */
 
 @media (max-width:600px){
