@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0008 · 动手第②步：PHP 加循环 → Agent 骨架</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 100px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0008 · 动手第②步：PHP 加循环 → Agent 骨架</h1>
+  <div class="meta">Agent Foundations · 动手阶段第 2 课 · 预计 15 分钟</div>
+
+  <p class="lead">上节课你跑通了单轮 LLM 调用——一条 POST，一句回复。这节课给它加一个 <code>while</code> 循环，让它<b>反复调用 LLM、积累对话历史、自己推进目标</b>。这就是 Agent 骨架。</p>
+
+  <div class="box q">
+    <b>验收标准（0006 路线图第②步）：</b>给模型一个目标，它能在循环里推进——即使只是说着"我需要工具"然后停下。日志里能看到 ≥3 轮迭代。
+  </div>
+
+  <h2>1. 从"一轮"到"多轮"：差在哪</h2>
+  <div class="schema">
+    <div class="row"><span class="key">单轮</span><span class="val"><code>messages = [user msg]</code> → POST → 回复 → 结束。模型不知道"前面说过什么"，每次都是全新对话。</span></div>
+    <div class="row"><span class="key">多轮</span><span class="val">每轮把模型回复 <b>追加到 messages 数组</b>，下一轮带上完整历史。模型"记得"之前说了什么，能做多步推理。</span></div>
+    <div class="row"><span class="key">循环</span><span class="val"><code>while</code> 包裹上述过程，加 <b>max_iter 上限</b>（防死循环）和<b>停止条件</b>（如模型说了 FINISH 或达上限）。</span></div>
+  </div>
+
+  <h2>2. 完整代码（在 step1.php 基础上改）</h2>
+  <p>保存为 <code>step2.php</code>，填 key，跑 <code>php step2.php</code>：</p>
+
+  <pre><span class="c">// step2.php — Agent 循环骨架（PHP 原生，零依赖）</span>
+<span class="k">&lt;?php</span>
+
+<span class="k">$</span>API_KEY = <span class="s">'sk-your-key-here'</span>;
+<span class="k">$</span>API_URL = <span class="s">'https://api.deepseek.com/v1/chat/completions'</span>;
+<span class="k">$</span>MODEL   = <span class="s">'deepseek-chat'</span>;
+
+<span class="k">$</span>GOAL = <span class="s">'我想了解巴黎，请分 3 个方面介绍（历史、美食、交通），每条一句话。最后用 FINISH 结束。'</span>;
+<span class="k">$</span>MAX_ITER = 6;  <span class="c">// 最多迭代 6 轮，防死循环/账单失控</span>
+
+<span class="c">// messages 是「对话历史」</span>
+<span class="k">$</span>messages = [[<span class="s">'role'</span> =&gt; <span class="s">'user'</span>, <span class="s">'content'</span> =&gt; <span class="k">$</span>GOAL]];
+
+<span class="k">for</span> (<span class="k">$</span>i = 0; <span class="k">$</span>i &lt; <span class="k">$</span>MAX_ITER; <span class="k">$</span>i++) {
+    <span class="k">echo</span> <span class="s">"</span><span class="se">\n</span><span class="s">═══ 第 "</span> . (<span class="k">$</span>i + 1) . <span class="s">" 轮 ═══</span><span class="se">\n</span><span class="s">"</span>;
+
+    <span class="c">// 调用 LLM（同 step1）</span>
+    <span class="k">$</span>ch = curl_init(<span class="k">$</span>API_URL);
+    curl_setopt_array(<span class="k">$</span>ch, [
+        <span class="k">CURLOPT_POST</span>           =&gt; <span class="k">true</span>,
+        <span class="k">CURLOPT_HTTPHEADER</span>     =&gt; [
+            <span class="s">'Content-Type: application/json'</span>,
+            <span class="s">'Authorization: Bearer '</span> . <span class="k">$</span>API_KEY,
+        ],
+        <span class="k">CURLOPT_POSTFIELDS</span>     =&gt; json_encode([
+            <span class="s">'model'</span>    =&gt; <span class="k">$</span>MODEL,
+            <span class="s">'messages'</span> =&gt; <span class="k">$</span>messages,   <span class="c">// 发送完整历史</span>
+            <span class="s">'max_tokens'</span> =&gt; 256,
+        ]),
+        <span class="k">CURLOPT_RETURNTRANSFER</span> =&gt; <span class="k">true</span>,
+        <span class="k">CURLOPT_TIMEOUT</span>        =&gt; 30,
+    ]);
+
+    <span class="k">$</span>body   = curl_exec(<span class="k">$</span>ch);
+    <span class="k">$</span>status = curl_getinfo(<span class="k">$</span>ch, <span class="k">CURLINFO_HTTP_CODE</span>);
+    curl_close(<span class="k">$</span>ch);
+
+    <span class="k">if</span> (<span class="k">$</span>status !== 200) { <span class="k">echo</span> <span class="s">"API 错误 HTTP </span><span class="k">$</span><span class="s">status</span><span class="se">\n</span><span class="s">"</span> . <span class="k">$</span>body; <span class="k">break</span>; }
+
+    <span class="k">$</span>data  = json_decode(<span class="k">$</span>body, <span class="k">true</span>);
+    <span class="k">$</span>reply = <span class="k">$</span>data[<span class="s">'choices'</span>][0][<span class="s">'message'</span>][<span class="s">'content'</span>];
+    <span class="k">echo</span> <span class="s">"模型："</span> . <span class="k">$</span>reply . <span class="s">"</span><span class="se">\n</span><span class="s">"</span>;
+
+    <span class="c">// 把模型回复追加到历史</span>
+    <span class="k">$</span>messages[] = [<span class="s">'role'</span> =&gt; <span class="s">'assistant'</span>, <span class="s">'content'</span> =&gt; <span class="k">$</span>reply];
+
+    <span class="c">// 停止条件：模型说了 FINISH</span>
+    <span class="k">if</span> (str_contains(<span class="k">$</span>reply, <span class="s">'FINISH'</span>)) {
+        <span class="k">echo</span> <span class="s">"</span><span class="se">\n</span><span class="s">✅ Agent 完成（自报 FINISH）</span><span class="se">\n</span><span class="s">"</span>;
+        <span class="k">break</span>;
+    }
+}
+
+<span class="k">echo</span> <span class="s">"</span><span class="se">\n</span><span class="s">📊 总共跑了 "</span> . (<span class="k">$</span>i + 1) . <span class="s">" 轮，最终消息数："</span> . count(<span class="k">$</span>messages) . <span class="s">"</span><span class="se">\n</span><span class="s">"</span>;</pre>
+
+  <p>运行输出大概是：</p>
+  <pre>═══ 第 1 轮 ═══
+模型：好的，让我从历史开始介绍。巴黎起源于...
+
+═══ 第 2 轮 ═══
+模型：接下来是美食方面。巴黎以... FINISH
+
+✅ Agent 完成（自报 FINISH）
+📊 总共跑了 2 轮，最终消息数：3</pre>
+
+  <h2>3. 循环里发生了什么（Observe→Think→Act 的 PHP 版）</h2>
+  <div class="schema">
+    <div class="row"><span class="key">$GOAL</span><span class="val">用户目标，作为第一条 user message。对 Agent 来说这就是「任务」。</span></div>
+    <div class="row"><span class="key">$messages</span><span class="val"><b>对话历史数组。</b>每轮把模型回复 <code>push</code> 进去，下一轮原样发送。模型就是靠这个「记住」之前说了什么——<b>messages 是 Agent 的短期记忆。</b></span></div>
+    <div class="row"><span class="key">for 循环</span><span class="val">replace 了第 1 课的「调一次就结束」→ 每轮：调 LLM → 取回复 → push 历史 → 检查是否 FINISH → 继续或退出。</span></div>
+    <div class="row"><span class="key">MAX_ITER</span><span class="val"><b>安全阀。</b>永远不要写无限循环——LLM 可能一直不说 FINISH。设合理上限（5-10），超过强制停止。</span></div>
+    <div class="row"><span class="key">FINISH</span><span class="val">简陋但有效的「停止协议」。真正的 Agent 靠 <code>stop_reason</code>（API 返回的终止原因）判断，但这节课要你先理解原理。</span></div>
+  </div>
+
+  <div class="box">
+    <b>PHP 工程师直觉</b>：这和你写分页查询的 while 循环几乎一样——<code>while($hasMore && $page < $maxPages){ fetch($page); $page++; }</code>。区别只在于：每次 fetch 的不是数据库，是 LLM；翻页信号不是 rowCount=0，是模型说了 FINISH。
+  </div>
+
+  <h2>4. 动手：改 GOAL，看 Agent 怎么跑</h2>
+  <p>把 <code>$GOAL</code> 换成下面任意一个，重新跑：</p>
+  <ul>
+    <li><code>'用 3 句话总结 PHP 8.0 最重要的新特性，最后说 FINISH'</code></li>
+    <li><code>'你是一个客服，用户问"怎么退款"。按步骤回答，最后说 FINISH'</code></li>
+    <li><code>'写一首 4 行诗，主题是代码，每行之后分析一下为什么这么写，最后说 FINISH'</code></li>
+  </ul>
+  <p>观察：<b>同一个循环，换一个 GOAL，Agent 的行为完全不同。</b>这就是 Agent 的核心——<b>目标是变量，循环是骨架。</b></p>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>跑通了就告诉我。</b>下一课（③）会给 Agent 接上第一个真正的工具——<code>get_time()</code>，让模型能调用你写的 PHP 函数。如果你对「messages 为什么能当记忆」「循环什么时候该停」有疑问——直接问。
+  </div>
+
+  <footer>
+    课程 0008 · 动手第②步 · 回顾
+    <a href="0007-php-single-llm-call.html">0007 单轮调用</a> ·
+    下一课预告：接第一个工具 get_time()
+  </footer>
+</div>
+
+<script>
+const Q8 = [
+  {
+    q:"Agent 循环中，模型为什么能「记住」之前说了什么？",
+    opts:["messages 数组每轮追加历史      ","模型内部有自动记忆功能        ","PHP 的 session 自动保存对话     ","curl 自带 keep-alive 连接       "],
+    ans:0,
+    ok:"对。messages 数组就是 Agent 的短期记忆——每轮把模型回复 push 进去，下次发完整历史。",
+    no:"不对。模型本身无状态，每次调用都是全新的。记住上下文全靠你每轮把完整 messages 数组发过去。"
+  },
+  {
+    q:"$MAX_ITER = 6 的主要作用是？",
+    opts:["控制对话质量                  ","防止死循环和账单失控            ","限制模型回复字数                ","加快 API 响应速度               "],
+    ans:1,
+    ok:"对。LLM 可能永远不说 FINISH，MAX_ITER 是安全阀——超过上限强制停止，防死循环、防账单失控。",
+    no:"不对。MAX_ITER 是硬性防守：LLM 可能一直不结束，必须有上限保底。"
+  },
+  {
+    q:"下面哪项是 step2.php 相比 step1.php 新增的？",
+    opts:["curl_setopt_array 配置参数     ","json_decode 解析回复体          ","for 循环 + messages 追加 + FINISH 检查","$payload 数组的 model 字段      "],
+    ans:2,
+    ok:"对。for 循环包裹调用、每轮 push 回复到 messages、检查 FINISH 退出——这三项是 step2 的核心增量。",
+    no:"不对。curl/json_decode/$payload 都在 step1 就有了。step2 新增的是循环 + 历史累积 + 停止条件。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q8.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>
