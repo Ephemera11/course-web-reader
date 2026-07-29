@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0009 · 动手第③步：PHP 接第一个工具 get_time()</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:11.5px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0009 · 动手第③步：PHP 接第一个工具 get_time()</h1>
+  <div class="meta">Agent Foundations · 动手阶段第 3 课 · 预计 18 分钟</div>
+
+  <p class="lead">上节课 Agent 能自己跑多轮，但只会"想"不会"做"。这节课给它接上一个<b>真实的 PHP 函数</b>——<code>get_time()</code>。模型说"我需要查时间"→ 你的代码执行 → 把结果喂回去。这就是第 3 课讲的 Tool Calling 在代码里第一次落地。</p>
+
+  <div class="box q"><b>验收标准：</b>定义 <code>get_time</code> 工具，Agent 被问"现在几点"时能正确调用并回复时间。</div>
+
+  <h2>1. 工具定义 + 执行器（关键代码）</h2>
+  <p>在 step2.php 基础上加两个数组——<b>工具定义</b>（告诉模型有什么工具）+ <b>工具映射</b>（PHP 函数名→实际 callable）：</p>
+
+  <pre><span class="c">// 工具定义（告诉模型：你有一个叫 get_time 的工具）</span>
+<span class="k">$</span>tools = [[
+    <span class="s">'name'</span> =&gt; <span class="s">'get_time'</span>,
+    <span class="s">'description'</span> =&gt; <span class="s">'获取当前日期和时间。当你需要告诉用户现在几点时调用此工具。不需要参数。'</span>,
+    <span class="s">'parameters'</span> =&gt; [
+        <span class="s">'type'</span> =&gt; <span class="s">'object'</span>,
+        <span class="s">'properties'</span> =&gt; new stdClass,  <span class="c">// 无参数</span>
+        <span class="s">'required'</span> =&gt; [],
+    ],
+]];
+
+<span class="c">// 工具执行器：工具名 → PHP 函数</span>
+<span class="k">$</span>executors = [
+    <span class="s">'get_time'</span> =&gt; function() {
+        <span class="k">return</span> date(<span class="s">'Y-m-d H:i:s'</span>);
+    },
+];</pre>
+
+  <h2>2. 循环里怎么接：调 LLM → 看它要啥工具 → 执行 → 喂回</h2>
+
+  <pre><span class="k">for</span> (<span class="k">$</span>i = 0; <span class="k">$</span>i &lt; <span class="k">$</span>MAX_ITER; <span class="k">$</span>i++) {
+    <span class="k">echo</span> <span class="s">"\n═══ 第 "</span> . (<span class="k">$</span>i + 1) . <span class="s">" 轮 ═══\n"</span>;
+
+    <span class="k">$</span>payload = [<span class="s">'model'</span>=&gt;<span class="k">$</span>MODEL, <span class="s">'messages'</span>=&gt;<span class="k">$</span>messages, <span class="s">'max_tokens'</span>=&gt;256];
+    <span class="k">if</span> (!empty(<span class="k">$</span>tools)) <span class="k">$</span>payload[<span class="s">'tools'</span>] = <span class="k">$</span>tools;  <span class="c">// 告诉模型有哪些工具</span>
+
+    <span class="c">// curl 调用（同 step2）</span>
+    <span class="k">$</span>ch = curl_init(<span class="k">$</span>API_URL);
+    curl_setopt_array(<span class="k">$</span>ch, [
+        <span class="k">CURLOPT_POST</span>=&gt;<span class="k">true</span>, <span class="k">CURLOPT_HTTPHEADER</span>=>[<span class="s">'Content-Type: application/json'</span>,<span class="s">'Authorization: Bearer '</span>.<span class="k">$</span>API_KEY],
+        <span class="k">CURLOPT_POSTFIELDS</span>=&gt;json_encode(<span class="k">$</span>payload), <span class="k">CURLOPT_RETURNTRANSFER</span>=&gt;<span class="k">true</span>, <span class="k">CURLOPT_TIMEOUT</span>=&gt;30]);
+    <span class="k">$</span>body=curl_exec(<span class="k">$</span>ch);curl_close(<span class="k">$</span>ch);
+    <span class="k">$</span>data=json_decode(<span class="k">$</span>body,<span class="k">true</span>);
+    <span class="k">$</span>msg=<span class="k">$</span>data[<span class="s">'choices'</span>][0][<span class="s">'message'</span>];
+
+    <span class="c">// 检查模型是否要调工具</span>
+    <span class="k">if</span> (!empty(<span class="k">$</span>msg[<span class="s">'tool_calls'</span>])) {
+        <span class="k">$</span>messages[] = <span class="k">$</span>msg;  <span class="c">// 保留模型的 tool_calls 消息</span>
+        <span class="k">foreach</span> (<span class="k">$</span>msg[<span class="s">'tool_calls'</span>] <span class="k">as</span> <span class="k">$</span>tc) {
+            <span class="k">$</span>name = <span class="k">$</span>tc[<span class="s">'function'</span>][<span class="s">'name'</span>];
+            <span class="k">$</span>args = json_decode(<span class="k">$</span>tc[<span class="s">'function'</span>][<span class="s">'arguments'</span>], <span class="k">true</span>) ?: [];
+            <span class="k">echo</span> <span class="s">"🔧 模型要调工具: </span><span class="k">$</span><span class="s">name</span><span class="se">\n</span><span class="s">"</span>;
+            <span class="k">$</span>result = <span class="k">$</span>executors[<span class="k">$</span>name](...<span class="k">$</span>args);  <span class="c">// 执行你的 PHP 函数</span>
+            <span class="k">$</span>messages[] = [<span class="s">'role'</span>=&gt;<span class="s">'tool'</span>, <span class="s">'tool_call_id'</span>=&gt;<span class="k">$</span>tc[<span class="s">'id'</span>], <span class="s">'content'</span>=&gt;json_encode(<span class="k">$</span>result)];
+            <span class="k">echo</span> <span class="s">"✅ 执行结果: </span><span class="k">$</span><span class="s">result</span><span class="se">\n</span><span class="s">"</span>;
+        }
+        <span class="k">continue</span>;  <span class="c">// 把 tool_result 喂回 LLM，进入下一轮</span>
+    }
+
+    <span class="c">// 普通文本回复</span>
+    <span class="k">$</span>reply = <span class="k">$</span>msg[<span class="s">'content'</span>] ?? <span class="s">''</span>;
+    <span class="k">echo</span> <span class="s">"模型："</span> . <span class="k">$</span>reply . <span class="s">"\n"</span>;
+    <span class="k">$</span>messages[] = [<span class="s">'role'</span>=&gt;<span class="s">'assistant'</span>, <span class="s">'content'</span>=&gt;<span class="k">$</span>reply];
+    <span class="k">if</span> (str_contains(<span class="k">$</span>reply, <span class="s">'FINISH'</span>)) <span class="k">break</span>;
+}</pre>
+
+  <h2>3. 一次完整往返（问时间 → 调工具 → 回复）</h2>
+  <div class="schema">
+    <div class="row"><span class="key">轮 1</span><span class="val">Agent 发送 user msg："现在几点" + tools 定义 → LLM 返回 <code>tool_calls: [{function: {name: "get_time"}}]</code></span></div>
+    <div class="row"><span class="key">执行</span><span class="val">PHP 捕获 tool_calls → <code>$executors['get_time']()</code> → 返回 <code>"2026-07-29 15:42:01"</code></span></div>
+    <div class="row"><span class="key">轮 2</span><span class="val">把 tool_result 追加到 messages → 再调 LLM → LLM 看到时间 → 回复 "现在是 2026 年 7 月 29 日 15:42"</span></div>
+  </div>
+
+  <h2>4. 完整 step3.php 要点</h2>
+  <p>在 step2.php 基础上 <b>只加 3 处</b>：① <code>$tools</code> 工具定义数组（放在循环外）；② <code>$executors</code> 函数映射；③ 循环里 <code>if (!empty($msg['tool_calls'])) { ... }</code> 分支。</p>
+
+  <div class="box">
+    <b>PHP 工程师直觉：</b>这和你做过的 <b>策略模式 / 路由分发</b>一模一样——模型返回一个函数名 + 参数，你 `call_user_func` 执行，结果写回上下文。区别只是：调用方不是代码里的 if/switch，是 LLM 在循环里自己决定的。
+  </div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+  <div class="reminder">💡 跑通了说「继续」，下一课加 <code>calculator</code> 工具，让 Agent 在两个工具之间自己选。</div>
+  <footer>课程 0009 · <a href="0008-php-agent-loop.html">0008</a> · 下一课：双工具选路</footer>
+</div>
+
+<script>
+const Q9=[{q:"Agent 接工具后，模型说「我要调 get_time」，这个决策信息在 API 回复的哪个字段里？",opts:["choices[0].message.content    ","choices[0].message.tool_calls  ","choices[0].message.role        ","choices[0].finish_reason        "],ans:1,ok:"对。工具调用请求在 message.tool_calls 数组里，包含 function.name 和 function.arguments。",no:"不对。content 是文本回复，role 是身份标记，finish_reason 是终止原因。工具调用请求在 tool_calls。 "},{q:"工具执行完后，结果以什么格式写回 messages？",opts:["role: 'user', content: 结果     ","role: 'tool', tool_call_id + content","role: 'assistant', content: 结果  ","role: 'system', content: 结果     "],ans:1,ok:"对。role=tool，带上 tool_call_id 匹配原请求，content 放 JSON 编码的结果。",no:"不对。工具结果必须 role=tool 且带 tool_call_id，方便 LLM 知道这个结果对应哪次调用。"},{q:"$executors 数组的作用是？",opts:["缓存 LLM 的回复内容           ","把工具名映射到实际的 PHP 函数   ","限制模型可调用的工具数量        ","存储工具的 JSON Schema 定义     "],ans:1,ok:"对。executors 是「工具名→callable」的映射表——LLM 说要调 get_time，你的代码从 executors 里找到对应函数并执行。",no:"不对。$executors 是工具名到 PHP 可调用对象的映射，$tools 才是 Schema 定义。"}];
+const quiz=document.getElementById('quiz');Q9.forEach((item,gi)=>{const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;block.appendChild(h);const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);item.opts.forEach((t,oi)=>{const b=document.createElement('button');b.className='opt';b.textContent=t;b.onclick=()=>{const correct=oi===item.ans;[...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok}else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no}};block.appendChild(b)})})
+</script>
+</body>
+</html>

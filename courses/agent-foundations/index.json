@@ -43,6 +43,21 @@
       "n": "0008",
       "file": "0008-php-agent-loop.html",
       "title": "动手第②步：PHP 加循环 → Agent 骨架"
+    },
+    {
+      "n": "0009",
+      "file": "0009-php-first-tool.html",
+      "title": "动手第③步：PHP 接第一个工具"
+    },
+    {
+      "n": "0010",
+      "file": "0010-php-two-tools.html",
+      "title": "动手第④步：PHP 双工具 + 模型选路"
+    },
+    {
+      "n": "0011",
+      "file": "0011-php-memory-final.html",
+      "title": "动手第⑤步：PHP 加记忆 + 收束"
     }
   ]
 }
