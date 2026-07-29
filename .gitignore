@@ -9,3 +9,6 @@ Thumbs.db
 # 本地验证脚本（临时，跑完即删，防误提交）
 hermes-verify-*.js
 validate-*.js
+
+.vercel
+.vercel
