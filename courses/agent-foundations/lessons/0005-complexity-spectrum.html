@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0005 · 复杂度光谱：从 Prompt 到 Agent 的选型决策</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  h3{font-size:16px;margin:18px 0 6px;color:var(--sub);}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:#eafaf8;border-color:#a8d9d0;}
+  .box.r{background:#fdecea;border-color:#f0b5b0;}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12.5px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  /* 光谱条 */
+  .spectrum{display:flex;align-items:stretch;margin:20px 0;border-radius:12px;overflow:hidden;
+    border:1px solid var(--line);height:48px;}
+  .spectrum .seg{flex:1;display:flex;align-items:center;justify-content:center;font-size:12.5px;
+    font-weight:650;color:#fff;text-align:center;padding:0 4px;line-height:1.3;}
+  .sp1{background:#5fae7e} .sp2{background:#8bbf5f} .sp3{background:#cbb26a}
+  .sp4{background:#d28a4a} .sp5{background:#c0423a}
+  /* 决策树 */
+  .dtree{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .dtree .q{font-weight:650;padding:10px 0 4px;color:var(--accent);font-size:15px; border-top:1px dashed var(--line);}
+  .dtree .q:first-of-type{border-top:none;}
+  .dtree .a{font-size:14.5px;color:var(--ink);padding:2px 0 8px 12px;}
+  .dtree .end{font-weight:700;color:var(--ok);padding-left:12px;}
+  .dtree .end.stop{color:var(--bad);}
+  /* 对比表 */
+  .compare{width:100%;border-collapse:collapse;font-size:14px;margin:14px 0;}
+  .compare th,.compare td{border:1px solid var(--line);padding:8px 12px;text-align:left;}
+  .compare th{background:var(--soft);font-weight:650;color:var(--sub);font-size:13px;}
+  .compare tr:first-child th{color:var(--ink);background:var(--card2);}
+  /* quiz */
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:#eafaf0;border-color:#9bd9b0;color:var(--ok);font-weight:600;}
+  .opt.wrong{background:#fdeaea;border-color:#e9b4b4;color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0005 · 复杂度光谱：从 Prompt 到 Agent 的选型决策</h1>
+  <div class="meta">Agent Foundations · 第 5 章 · 主推源：Anthropic《Building Effective Agents》</div>
+
+  <p class="lead">前四课你学了「Agent 是什么」「循环怎么转」「工具怎么接」「五种 Workflow 怎么选」。现在只剩最后一个——<b>面对一个真实需求，到底该用简单 Prompt、Workflow、还是全长 Agent？</b>这堂课给你一个可以当场判断的框架。</p>
+
+  <div class="box q">
+    <b>学完这课你能：</b>面对任何一个业务需求，在 30 秒内判断出最简方案是什么，并说清「为什么不上 Agent」或「为什么必须上 Agent」。
+  </div>
+
+  <h2>1. 一张光谱：简单 · 可控 · 便宜 ← → 灵活 · 自主 · 贵</h2>
+  <p>Anthropic 把 LLM 系统的「自主度」画成一条连续轴，不是二元开关：</p>
+
+  <div class="spectrum">
+    <div class="seg sp1">简单 Prompt</div>
+    <div class="seg sp2">Prompt Chaining</div>
+    <div class="seg sp3">Routing / Parallel</div>
+    <div class="seg sp4">Orch-Workers</div>
+    <div class="seg sp5">Autonomous Agent</div>
+  </div>
+
+  <p>越往右：模型越自由、能应付的场景越开放，但<b>延迟↑ / 成本↑ / 不可控性↑</b>。Engineering 的目标是<b>能用左边就别往右</b>——每向右挪一步，多一对价。</p>
+
+  <div class="box">
+    <b>核心原则（Anthropic 原话）</b>：<i>"We recommend starting with the simplest possible solution and only increasing complexity when clearly needed."</i><br>
+    翻译：<b>能简单就别复杂。</b>这不仅是成本问题——复杂系统更难调试、更难复现、更可能在生产中悄悄跑偏。
+  </div>
+
+  <h2>2. 决策树：30 秒走一遍</h2>
+  <p>在下单「上 Agent」之前，先过这 5 问：</p>
+
+  <div class="dtree">
+    <div class="q">Q1. 一个 prompt 能搞定吗？</div>
+    <div class="a">能 → <span class="end stop">STOP：写 prompt，别上框架。</span>99% 的「我想要 AI...」到这就够了。</div>
+    <div class="q">Q2. 步骤固定、顺序已知？</div>
+    <div class="a">是 → <span class="end">Prompt Chaining。</span>把复杂 prompt 拆成流水线，每步可测可调。</div>
+    <div class="q">Q3. 输入分几类、每类处理方式不同？</div>
+    <div class="a">是 → <span class="end">Routing。</span>分类器分到对应专家提示词，简单有效。</div>
+    <div class="q">Q4. 子任务能无依赖并行，或需投票提稳健性？</div>
+    <div class="a">是 → <span class="end">Parallelization。</span>扇出→汇总，省钱提速。</div>
+    <div class="q">Q5. 拆解方式事先无法确定、必须运行时动态决定？</div>
+    <div class="a">是 → <span class="end">Orchestrator-Workers。</span>这是 Workflow 的天花板。若再加上「评审—生成—迭代修复」的闭环（Evaluator-Optimizer），可覆盖绝大多数生产需求。</div>
+    <div class="q">Q6. 以上全部不够，你需要模型自己决定「接下来该做什么」、持续多步探索？</div>
+    <div class="a">是 → <b>才上 Autonomous Agent Loop。</b>但请确认你没有跳步骤——大多数场景 Q1-Q5 已覆盖。</div>
+  </div>
+
+  <h2>3. 一张对比表：什么时候该收手</h2>
+  <p>每种方案都有「适合」和「反过来用了会亏」的明确信号。按延迟、可控性、维护成本三轴对比：</p>
+
+  <table class="compare">
+    <tr><th>方案</th><th>典型延迟</th><th>可控性</th><th>维护成本</th><th>别用在…</th></tr>
+    <tr><td>简单 Prompt</td><td>~1s</td><td>极高（全写死）</td><td>低</td><td>多步推理</td></tr>
+    <tr><td>Chaining</td><td>2-5s</td><td>高（流固定）</td><td>中低</td><td>动态拆解任务</td></tr>
+    <tr><td>Routing</td><td>1-3s</td><td>高（分支固定）</td><td>中低</td><td>跨类混合任务</td></tr>
+    <tr><td>Parallel</td><td>2-4s</td><td>中高</td><td>中</td><td>串行依赖任务</td></tr>
+    <tr><td>Orch-Workers</td><td>5-15s</td><td>中</td><td>中高</td><td>简单固定流程</td></tr>
+    <tr><td>Autonomous Agent</td><td>10-60s+</td><td>低（自己定）</td><td>高</td><td>一切 Q1-Q5 能覆盖的</td></tr>
+  </table>
+
+  <h2>4. 给 PHP 工程师的实操启发</h2>
+  <p>回到你的日常技术栈——当你接到一个「用 AI 增强」的需求时，映射关系是：</p>
+
+  <div class="box">
+    <ul style="margin:4px 0">
+      <li><b>简单 Prompt</b> ≈ 一个 API 调用，像调 <code>trim()</code> 一样用</li>
+      <li><b>Chaining</b> ≈ 责任链 / Pipeline 模式，每步可 mock 可单测</li>
+      <li><b>Routing</b> ≈ 网关路由 / 策略模式，按意图分发到不同 handler</li>
+      <li><b>Orch-Workers</b> ≈ 主从任务队列，主进程拆任务、worker 并行跑</li>
+      <li><b>Agent</b> ≈ 一个 while loop 里 LLM 自己决定下一步跑啥——<b>把这当成最后手段</b></li>
+    </ul>
+  </div>
+
+  <p>关键纪律：<b>Agent 不是"高级"的代名词，是"拿不到的灵活性的代价"。</b>大多数人犯的错误不是"没用 Agent"，而是"没想清楚就用了 Agent"。</p>
+
+  <div class="box g">
+    <b>✅ 该上 Agent 的典型信号：</b>
+    <ul style="margin:4px 0">
+      <li>任务结构在运行前无法预知（需要探索而非执行）</li>
+      <li>需要多步推理且每步结果影响下一步方向</li>
+      <li>固定 Workflow 会频繁出现「路径覆盖不全」的遗漏</li>
+      <li>你需要模型在循环里自我纠错（观察→反思→调整→再试）</li>
+    </ul>
+  </div>
+
+  <div class="box r">
+    <b>❌ 不该上 Agent 的典型信号：</b>
+    <ul style="margin:4px 0">
+      <li>你还没把一个最简单的 prompt 版本跑通就想着「架构」</li>
+      <li>步骤完全可以写死在代码里（Chaining/Routing 够用）</li>
+      <li>团队还没人能解释 Agent 循环里的每一次工具调用是为什么</li>
+      <li>需求方说不清「成功标准」——Agent 是为明确目标服务的</li>
+    </ul>
+  </div>
+
+  <h2>小测：检验你真的有判断力了</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>学了还要会问。</b>比如「我的这个真实业务该用 Routing 还是 Agent」「Chaining 在 Laravel 里怎么组织代码」「决策树能不能做成 lint 规则」——<b>直接问我就行</b>。
+    下一课预告：回顾全套概念，给出「从零手搓 Agent」的最小骨架路线图。
+  </div>
+
+  <footer>
+    课程 0005 · 复杂度光谱 · 主推源：
+    <a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noopener">Anthropic — Building Effective Agents</a>
+    · 上一课 <a href="0004-workflow-patterns.html">0004</a>
+  </footer>
+</div>
+
+<script>
+const Q5 = [
+  {
+    q:"Anthropic 建议的决策顺序是？",
+    opts:["从最简单开始，必要时才升","先上 Agent 再降级到合适","所有需求都用 Routing 起步","复杂问题直接上多维编排"],
+    ans:0,
+    ok:"对。核心原则就是「能简单别复杂」，从最简单方案起步、只在确需时升级。",
+    no:"不对。Anthropic 明确建议从最简单的方案开始，只在必要时才增加复杂度。"
+  },
+  {
+    q:"以下哪个场景最该直接上 Autonomous Agent Loop？",
+    opts:["任务步骤固定、可分三类路由","子任务结构只能在运行时才弄清","需要并行调三个 LLM 后投票汇总","把一个长文档切段后逐段摘要再合并"],
+    ans:1,
+    ok:"对。子任务结构运行时才清楚 → 需要动态决策 → Agent Loop。其余都是固定 Workflow 可覆盖。",
+    no:"不对。「步骤固定」「并行投票」「分段摘要」都是 Workflow 可覆盖的；只有运行时动态拆解才需要 Agent。"
+  },
+  {
+    q:"以下哪个是「不该上 Agent」的明确信号？",
+    opts:["还没跑通最简单方案就考虑架构","输入有明显类别差异且需分别处理","有明确可验证标准且要反复打磨","长文档需分段摘要、并行后再汇总"],
+    ans:0,
+    ok:"对。「还没跑通最简单方案」是过度工程化的典型信号，先让一个 prompt 跑出来再说。",
+    no:"不对。后三个都是 Workflow 的经典场景（Routing / Evaluator-Optimizer / Parallelization），不是 Agent。"
+  },
+  {
+    q:"在工作流复杂度轴上，Orchestrator-Workers 的典型顺序在？",
+    opts:["Chaining 之后、Agent 之前","简单 Prompt 之后、Routing 之前","Parallel 之后、Evaluator 之前","Routing 之后、Chaining 之前"],
+    ans:0,
+    ok:"对。顺序是 Prompt → Chaining → Routing/Parallel → Orch-Workers → Agent。Orch-Workers 是 Workflow 天花板。",
+    no:"再对照一下光谱：Prompt → Chaining → Routing → Parallel → Orch-Workers → Agent。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q5.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>
