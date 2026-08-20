@@ -13,6 +13,11 @@
       "n": "0002",
       "file": "0002-first-vite-project.html",
       "title": "5 分钟跑起你的第一个 Vite 项目"
+    },
+    {
+      "n": "0003",
+      "file": "0003-index-html-esm.html",
+      "title": "理解 index.html 与 ESM 模块图"
     }
   ]
 }

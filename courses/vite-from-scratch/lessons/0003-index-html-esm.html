@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0003 · 理解 index.html 与 ESM 模块图</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0003 · 理解 index.html 与 ESM 模块图</h1>
+  <div class="meta">Vite 从零入门 · 第 3 课 · 预计 14 分钟</div>
+
+  <p class="lead">第 2 课你跑起了项目，但可能还有疑问：为什么 index.html 必须放根目录？浏览器怎么就能直接跑 <code>import</code>？这一课把模块加载的底层机制讲透，你会真正理解 Vite「不打包」的妙处。</p>
+
+  <div class="box q"><b>本节目标：</b>能解释 ESM 是什么、浏览器原生怎么加载它、以及 Vite 在开发时如何利用它做到「不打包也跑得起来」。</div>
+
+  <h2>1. 什么是 ESM</h2>
+  <p><b>ESM = ECMAScript Modules</b>，是 JavaScript 官方的模块标准。你写的 <code>import</code> / <code>export</code> 就是 ESM 语法。在浏览器里，只要 <code>&lt;script type="module"&gt;</code>，浏览器就按模块规范去加载。</p>
+  <pre><span class="c">// main.js —— 这就是一个 ESM 模块</span>
+<span class="k">import</span> { add } <span class="k">from</span> <span class="s">'./math.js'</span>;   <span class="c">// 浏览器看到这行，会再去请求 math.js</span>
+console.log(add(1, 2));</pre>
+  <p>关键：<b>ESM 是「浏览器原生支持」的</b>。现代 Chrome/Firefox/Safari 不需要任何打包器，自己就能解析 <code>import</code> 并去拉取对应文件。</p>
+
+  <h2>2. Vite 怎么用 ESM「不打包」</h2>
+  <div class="schema">
+    <div class="row"><span class="key">传统打包器</span><span class="val">启动前先把所有 <code>import</code> 递归拼成<b>一个</b>大文件，再交给浏览器。项目越大，拼得越久。</span></div>
+    <div class="row"><span class="key">Vite 开发时</span><span class="val">不拼。浏览器请求 index.html → 发现 <code>main.js</code> → 浏览器自己再去请求 main.js 里 import 的每个文件。Vite 只负责<b>把文件原样发给浏览器</b> + 处理第三方依赖。</span></div>
+  </div>
+  <div class="box g"><b>所以 Vite 的快，本质是「把打包的活儿交还给浏览器」。浏览器本来就能按需加载模块，Vite 只是不挡在这中间做全量预构建了。</b></div>
+
+  <h2>3. 为什么 index.html 要在根目录</h2>
+  <p>Vite 以 <b>项目根目录</b> 作为「网站根（root）」。index.html 放根目录，浏览器访问 <code>/</code> 就能直接拿到它；它里面写的 <code>src="/main.js"</code> 这个绝对路径，Vite 才能正确解析到根下的 main.js。</p>
+  <p>如果 index.html 放到 <code>src/</code> 子目录，路径关系就乱了，需要额外配置 <code>root</code> 或 <code>rollupOptions.input</code>。对初学者，<b>保持默认最省心</b>。</p>
+
+  <h2>4. 一张模块图</h2>
+  <p>假设项目结构如下，浏览器加载时的请求链条是这样的：</p>
+  <pre>index.html
+  └─ &lt;script type=module src=/main.js&gt;
+       ├─ import './style.css'   → Vite 把它转成一段 JS 注入样式
+       └─ import { add } from './math.js'
+            └─ math.js 里又 import 别的… 浏览器逐层去拉</pre>
+  <p>每个 <code>import</code> 都是一次独立的 HTTP 请求（开发时）。你改了 math.js，只有 math.js 这个请求重新来一遍，其他文件纹丝不动——这就是 HMR 能做到「秒级更新」的底层原因。</p>
+
+  <h2>5. 一个常见误区</h2>
+  <div class="vs">
+    <div class="row"><span class="k">误区</span><span class="before">「不用打包器，浏览器一个个拉文件，请求太多很慢吧？」</span><span class="after">开发时确实多请求，但本地毫秒级响应；生产时 Vite 用 Rollup 打包成少量文件，没这问题</span></div>
+    <div class="row"><span class="k">误区</span><span class="before">「import 只能在 Node/打包器里用」</span><span class="after">错。浏览器原生支持 ESM，<code>type=module</code> 即可</span></div>
+    <div class="row"><span class="k">误区</span><span class="before">「CSS 也能 import 很奇怪」</span><span class="after">Vite 把 <code>import './x.css'</code> 编译成运行时注入 style 标签，是 Vite 的能力</span></div>
+  </div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>理解了模块图，下一课（0004）我们讲 Vite 配置文件 vite.config.js</b>——怎么加别名、怎么配插件。有疑问先消化这课，它是后面所有配置的地基。
+  </div>
+
+  <footer>
+    课程 0003 · Vite 入门 · 概念篇
+    · 关于 ESM：<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Modules" target="_blank" rel="noopener">MDN 模块指南</a>
+    · <a href="0002-first-vite-project.html">上节 跑起项目</a>
+  </footer>
+</div>
+
+<script>
+const Q3 = [
+  {
+    q:"ESM（ES Modules）是谁支持的？",
+    opts:["只有 Node.js 支持                  ","只有 webpack 这类打包器支持        ","现代浏览器原生支持                  ","只有 Vite 自己发明的支持            "],
+    ans:2,
+    ok:"对。ESM 是 JS 官方标准，现代浏览器通过 type=module 原生解析 import/export，无需打包器。",
+    no:"不对。ESM 是浏览器原生支持的，正因为如此 Vite 开发时才能「不打包」直接交给浏览器跑。"
+  },
+  {
+    q:"Vite 开发时为什么能「不打包」就跑起来？",
+    opts:["它在后台偷偷先打包了              ","它把打包任务交给了浏览器原生加载 ESM ","它要求你必须用 TypeScript            ","它禁用了所有 import                 "],
+    ans:1,
+    ok:"对。浏览器本来就能按需加载 ESM 模块，Vite 只是把源文件原样发给浏览器，自己不挡在中间做全量预构建。",
+    no:"不对。Vite 的「不打包」是把模块加载交给浏览器原生 ESM 去逐文件请求，而不是自己在后台先打包。"
+  },
+  {
+    q:"为什么 Vite 项目默认要把 index.html 放在根目录？",
+    opts:["Vite 强制规定不能改              ","根目录作为网站根，/main.js 才能正确解析 ","放在哪都一样，只是习惯              ","因为 HTML 文件必须叫 index         "],
+    ans:1,
+    ok:"对。Vite 以项目根为网站根，index.html 在根目录时，里面写的绝对路径 /main.js 才能被 Vite 正确定位。",
+    no:"不对。根目录是 Vite 的网站根（root），index.html 放根目录是为了让里面的绝对路径（如 /main.js）能正确解析，不是强制习惯。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q3.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>
