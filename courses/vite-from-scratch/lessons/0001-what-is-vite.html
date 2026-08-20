@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0001 · Vite 是什么，又解决了什么痛点</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 150px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 110px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0001 · Vite 是什么，又解决了什么痛点</h1>
+  <div class="meta">Vite 从零入门 · 第 1 课 · 预计 12 分钟</div>
+
+  <p class="lead">如果你写过前端，大概率被"构建工具"折磨过：装一堆依赖、等几十秒冷启动、改一行代码刷新整页重编译。<b>Vite</b>（法语"快"，读作 /vit/）就是来终结这种痛苦的——它让开发服务器秒开、改代码即时生效。这节课先建立心智模型，下一课就动手跑起来。</p>
+
+  <div class="box q">
+    <b>本节目标：</b>能说清 Vite 是什么、它靠什么变快、以及它和 webpack 这类老工具的本质区别。先理解"为什么"，再学"怎么用"。
+  </div>
+
+  <h2>1. Vite 一句话定义</h2>
+  <p><b>Vite 是一个"前端构建工具 + 开发服务器"二合一的工具。</b>它干两件事：</p>
+  <div class="schema">
+    <div class="row"><span class="key">开发时</span><span class="val">提供极速开发服务器（dev server），带<b>热更新 HMR</b>——你改代码，浏览器几乎瞬间反映变化，不用整页刷新。</span></div>
+    <div class="row"><span class="key">打包时</span><span class="val">用 <b>Rollup</b> 把你的源码打包成优化过的静态文件，丢到任何静态服务器就能跑（Nginx、Vercel、OSS 都行）。</span></div>
+  </div>
+
+  <h2>2. 它凭什么快？两个关键设计</h2>
+  <div class="schema">
+    <div class="row"><span class="key">原生 ESM</span><span class="val">开发时<b>不打包</b>。浏览器原生支持 ES Module（<code>import/export</code>），Vite 直接把源文件按模块发给浏览器，按需加载。没有"先把整个项目打包一遍"这一步，所以冷启动是毫秒级。</span></div>
+    <div class="row"><span class="key">esbuild</span><span class="val">依赖预构建用 Go 写的 <b>esbuild</b>，比 JS 写的打包器快 10-100 倍。只处理第三方依赖（node_modules），业务代码交给浏览器原生跑。</span></div>
+  </div>
+
+  <h2>3. 和传统工具（如 webpack）对比</h2>
+  <div class="vs">
+    <div class="row"><span class="k">启动速度</span><span class="before">webpack：先递归打包全部依赖，项目越大越慢（常 10s+）</span><span class="after">Vite：不打包，按需编译，毫秒级启动</span></div>
+    <div class="row"><span class="k">改代码后</span><span class="before">webpack：重新构建受影响模块，常需秒级等待</span><span class="after">Vite：HMR 只替换改动的那个模块，即时生效</span></div>
+    <div class="row"><span class="k">配置复杂度</span><span class="before">webpack：loader/plugin 配置繁琐</span><span class="after">Vite：开箱即用，零配置就能跑</span></div>
+    <div class="row"><span class="k">生产打包</span><span class="before">webpack：自己打包</span><span class="after">Vite：用 Rollup 打包（更优的产物优化）</span></div>
+  </div>
+
+  <div class="box">
+    <b>关键认知：</b>Vite 在<b>开发时用原生 ESM 跳过打包</b>，在<b>生产时用 Rollup 认真打包</b>。两套策略分工——开发要快，生产要小要稳。这不是偷懒，是"不同场景用不同最优解"。
+  </div>
+
+  <h2>4. 你会在哪用到它</h2>
+  <ul>
+    <li>纯前端项目（HTML/CSS/JS，或配合 Vue/React）</li>
+    <li>库/组件库开发（Vite 打包出 ESM + UMD 多种格式）</li>
+    <li>接后端 API 的前端 SPA（单页应用）</li>
+    <li>甚至能当静态站点生成器（配合插件）</li>
+  </ul>
+  <p>你熟悉的 PHP 后端完全不受影响——Vite 只负责"前端产物"，产物就是一堆 HTML/JS/CSS，丢到 nginx 或 vercel 即可。</p>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>有疑问直接问。</b>下一课（0002）我们就动手：5 分钟跑起第一个 Vite 项目，你会亲眼看到那个"秒开"的开发服务器。先确保这节课的对比表你心里有数。
+  </div>
+
+  <footer>
+    课程 0001 · Vite 入门 · 概念篇
+    · 官方文档（强烈推荐）：<a href="https://vite.dev/guide/why" target="_blank" rel="noopener">vite.dev/guide/why</a>
+  </footer>
+</div>
+
+<script>
+const Q1 = [
+  {
+    q:"Vite 在「开发时」为什么能毫秒级启动？",
+    opts:["它预先把全部代码压缩成单文件     ","它不打包，直接用浏览器原生 ESM 按需加载 ","它用 PHP 在服务器端渲染页面        ","它禁用了所有第三方依赖               "],
+    ans:1,
+    ok:"对。开发时 Vite 不做整包构建，而是把源文件按 ES Module 直接发给浏览器，浏览器按需 import——跳过最耗时的"先打包全部依赖"这一步。",
+    no:"不对。Vite 的快恰恰来自"开发时【不】打包"。webpack 那种先递归打包全部依赖才会慢。"
+  },
+  {
+    q:"Vite 生产环境打包用的是什么工具？",
+    opts:["它自己从零写的打包器            ","Rollup                             ","esbuild                            ","Webpack                            "],
+    ans:1,
+    ok:"对。开发用 esbuild（快），生产用 Rollup（产物优化更强）。分工明确：开发要快，生产要小要稳。",
+    no:"不对。esbuild 只用于开发时的依赖预构建；真正产出生产包的是 Rollup。"
+  },
+  {
+    q:"下面哪句话最符合 Vite 的设计哲学？",
+    opts:["一套配置通吃所有场景            ","开发时跳打包求快，生产时认真打包求优 ","尽量不用浏览器新特性                ","必须用 TypeScript 才能运行          "],
+    ans:1,
+    ok:"对。Vite 的精髓就是"分场景用最优解"：开发靠原生 ESM 跳过打包换速度，生产靠 Rollup 认真优化换质量。",
+    no:"不对。Vite 恰恰反对"一套配置通吃"——它在开发和生产用两套不同策略。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q1.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

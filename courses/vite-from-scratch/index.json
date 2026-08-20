@@ -1,0 +1,13 @@
+{
+  "id": "vite-from-scratch",
+  "title": "Vite 从零入门",
+  "kicker": "COURSE",
+  "cover": "teal",
+  "lessons": [
+    {
+      "n": "0001",
+      "file": "0001-what-is-vite.html",
+      "title": "Vite 是什么，又解决了什么痛点"
+    }
+  ]
+}
