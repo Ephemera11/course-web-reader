@@ -8,6 +8,11 @@
       "n": "0001",
       "file": "0001-what-is-vite.html",
       "title": "Vite 是什么，又解决了什么痛点"
+    },
+    {
+      "n": "0002",
+      "file": "0002-first-vite-project.html",
+      "title": "5 分钟跑起你的第一个 Vite 项目"
     }
   ]
 }
