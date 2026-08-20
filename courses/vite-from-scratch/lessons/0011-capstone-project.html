@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0011 · 综合实战：从零搭一个真实小项目</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0011 · 综合实战：从零搭一个真实小项目</h1>
+  <div class="meta">Vite 从零入门 · 第 11 课（收官）· 预计 18 分钟</div>
+
+  <p class="lead">前面 10 课拆开了讲，这一课把它们串起来：从空目录开始，搭一个「待办列表」小应用，用到配置、别名、环境变量、模块化、构建部署全流程。做完你就拥有独立用 Vite 开工的能力。</p>
+
+  <div class="box q"><b>本节目标：</b>跟着走完一个最小完整项目，建立「从 init 到 deploy」的全局节奏；理解每一步在整体中的位置。</div>
+
+  <h2>1. 初始化</h2>
+  <pre><span class="c"># 用官方脚手架（vanilla 模板，无框架）</span>
+npm create vite@latest todo-app -- --template vanilla
+cd todo-app
+npm install</pre>
+
+  <h2>2. 加配置与别名</h2>
+  <p>新建 <code>vite.config.js</code>，配 <code>@</code> 指向 src：</p>
+  <pre><span class="k">import</span> { defineConfig } <span class="k">from</span> <span class="s">'vite'</span>;
+<span class="k">import</span> { fileURLToPath, URL } <span class="k">from</span> <span class="s">'node:url'</span>;
+<span class="k">export default</span> defineConfig({
+  resolve: { alias: { <span class="s">'@'</span>: fileURLToPath(<span class="k">new</span> URL(<span class="s">'./src'</span>, <span class="k">import</span>.meta.url)) } },
+});</pre>
+
+  <h2>3. 分层写代码</h2>
+  <div class="schema">
+    <div class="row"><span class="key">src/main.js</span><span class="val">入口：挂载事件、渲染列表</span></div>
+    <div class="row"><span class="key">src/store.js</span><span class="val">数据层：增删改待办（用 @/store 引入）</span></div>
+    <div class="row"><span class="key">src/style.css</span><span class="val">样式，被 main.js import</span></div>
+  </div>
+  <pre><span class="c">// src/store.js</span>
+<span class="k">let</span> todos = [];
+<span class="k">export</span> <span class="k">function</span> addTodo(text) { todos.push({ text, done: <span class="k">false</span> }); }
+<span class="k">export</span> <span class="k">function</span> getTodos() { <span class="k">return</span> todos; }</pre>
+  <pre><span class="c">// src/main.js</span>
+<span class="k">import</span> { addTodo, getTodos } <span class="k">from</span> <span class="s">'@/store'</span>;
+<span class="k">import</span> <span class="s">'./style.css'</span>;
+<span class="c">// 绑定按钮、渲染列表……</span></pre>
+
+  <h2>4. 区分环境的 API 地址</h2>
+  <pre><span class="c"># .env.development</span>
+VITE_API_BASE=http://localhost:3000
+<span class="c"># .env.production</span>
+VITE_API_BASE=https://api.mysite.com</pre>
+  <p>代码里统一用 <code>import.meta.env.VITE_API_BASE</code>，部署时无需改代码。</p>
+
+  <h2>5. 构建与部署</h2>
+  <pre>npm run build      <span class="c"># 产出 dist/</span>
+npm run preview     <span class="c"># 本地预览产物</span></pre>
+  <p>把 dist/ 传到 Vercel（连 Git 自动部署）或对象存储即可上线。至此，一个完整闭环走完。</p>
+
+  <div class="box g"><b>你已掌握的能力：</b>① 理解 Vite 的快来自原生 ESM；② 跑起开发服务器与 HMR；③ 配 vite.config 与别名；④ 用插件扩展；⑤ 管环境变量与 mode；⑥ 多页/库模式；⑦ 处理 CSS 与资源；⑧ 做构建优化；⑨ 部署到任意静态平台；⑩ 串成完整项目。</div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    🎓 <b>课程到此结束。</b>回头看 0001→0011，你已经从「Vite 是什么」走到了「能独立交付一个 Vite 项目」。下一步建议：挑一个真实想法（个人站、小工具）动手做，遇到具体场景再回来查对应那课。恭喜毕业！
+  </div>
+
+  <footer>
+    课程 0011 · Vite 入门 · 实战篇（收官）
+    · 官方起步：<a href="https://vite.dev/guide/" target="_blank" rel="noopener">vite.dev/guide</a>
+    · <a href="0010-deploy.html">上节 部署</a>
+  </footer>
+</div>
+
+<script>
+const Q11 = [
+  {
+    q:"在一个完整 Vite 项目里，用 @/store 引入模块，这个 @ 是哪一步决定的？",
+    opts:["Node.js 内置的                        ","vite.config.js 里的 resolve.alias 配置    ","浏览器自动支持的                      ","package.json 里的依赖声明            "],
+    ans:1,
+    ok:"对。@ 是你在 vite.config.js 的 resolve.alias 里自定义的别名，Vite 解析路径时会把它替换成对应的绝对路径。",
+    no:"不对。@ 不是语言或浏览器内置的，而是你在 vite.config.js 的 resolve.alias 中配置的别名，需指向真实目录。"
+  },
+  {
+    q:"项目用 import.meta.env.VITE_API_BASE 读 API 地址，部署到生产时这个值是哪来的？",
+    opts:["写死在代码里必须手动改              ","来自 .env.production 文件，Vite 按 mode 自动选","永远等于 localhost                    ","由浏览器随机生成                      "],
+    ans:1,
+    ok:"对。build 时 Vite 加载 .env.production，VITE_API_BASE 取该文件的值，代码里无需改就能切换到生产地址。",
+    no:"不对。该值来自对应 mode 的 .env 文件（production 构建时读 .env.production），Vite 自动注入，不用改代码。"
+  },
+  {
+    q:"走完一个 Vite 项目从开发到上线的正确顺序是？",
+    opts:["build → dev → deploy                 ","init → dev(写代码) → build → deploy      ","deploy → build → dev                  ","dev → deploy → build                  "],
+    ans:1,
+    ok:"对。标准节奏是：初始化项目 → 开发服务器写代码（HMR）→ 构建产出 dist → 把 dist 部署上线。",
+    no:"不对。正确顺序是 init 初始化、dev 开发、build 构建、deploy 部署；build 必须在 deploy 之前。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q11.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

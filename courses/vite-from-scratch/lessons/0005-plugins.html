@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0005 · 插件：Vite 的真正扩展点</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0005 · 插件：Vite 的真正扩展点</h1>
+  <div class="meta">Vite 从零入门 · 第 5 课 · 预计 13 分钟</div>
+
+  <p class="lead">Vite 本身很克制，大部分能力靠插件补。Vue/React 支持、自动导入、压缩、PWA——全都是插件。这一课你搞懂插件是什么、怎么装、常见插件有哪些，以后遇到需求先想「有没有现成插件」而不是自己造轮子。</p>
+
+  <div class="box q"><b>本节目标：</b>理解插件解决了什么问题、能在哪些时机介入构建、以及会用 2-3 个最常用的官方/社区插件。</div>
+
+  <h2>1. 插件解决什么问题</h2>
+  <p>Vite 核心只做「开发服务器 + Rollup 打包」两件通用的事。但真实项目有千百种需求：支持 Vue 单文件组件、把图片转 base64、生成 sitemap……这些不可能塞进核心。<b>插件就是在特定时机注入自定义逻辑的钩子。</b></p>
+
+  <h2>2. 插件怎么工作（钩子模型）</h2>
+  <p>Vite 插件复用 Rollup 的钩子体系。简化理解：构建过程中有一连串「时刻」，插件可以在某个时刻插一脚：</p>
+  <div class="schema">
+    <div class="row"><span class="key">config</span><span class="val">读取/修改配置时</span></div>
+    <div class="row"><span class="key">resolveId</span><span class="val">解析模块路径时（别名就是在这干预）</span></div>
+    <div class="row"><span class="key">transform</span><span class="val">每个源码文件被转换时（改代码、注入内容）</span></div>
+    <div class="row"><span class="key">buildEnd</span><span class="val">打包结束时</span></div>
+  </div>
+
+  <h2>3. 用插件：三部曲</h2>
+  <pre><span class="c">// 1) 安装</span>
+<span class="c">// npm i -D @vitejs/plugin-vue</span>
+
+<span class="c">// 2) 在 vite.config.js 引入</span>
+<span class="k">import</span> vue <span class="k">from</span> <span class="s">'@vitejs/plugin-vue'</span>;
+
+<span class="c">// 3) 加到 plugins 数组</span>
+<span class="k">export default</span> defineConfig({
+  plugins: [vue()],
+});</pre>
+  <div class="box g"><b>绝大多数需求都已有插件：</b>Vue→<code>@vitejs/plugin-vue</code>、React→<code>@vitejs/plugin-react</code>、自动导入→<code>unplugin-auto-import</code>、压缩→<code>vite-plugin-compression</code>。先搜再写。</div>
+
+  <h2>4. 写个极简插件感受一下</h2>
+  <pre><span class="k">export default</span> defineConfig({
+  plugins: [{
+    name: <span class="s">'hello'</span>,
+    transform(code, id) {
+      <span class="c">// 对每个 .js 文件，在末尾加一行注释</span>
+      <span class="k">if</span> (id.endsWith(<span class="s">'.js'</span>)) {
+        <span class="k">return</span> code + <span class="s">'\n// built by my plugin'</span>;
+      }
+    },
+  }],
+});</pre>
+  <p>这就是一个合法插件：一个带 <code>name</code> 和钩子的对象。看懂这个，你就理解了所有插件的本质。</p>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>记住：先搜插件再自己写。</b>下一课（0006）讲环境变量与 mode——区分开发/生产配置。卡住就问。
+  </div>
+
+  <footer>
+    课程 0005 · Vite 入门 · 配置篇
+    · 插件 API：<a href="https://vite.dev/guide/using-plugins" target="_blank" rel="noopener">vite.dev/guide/using-plugins</a>
+    · <a href="0004-vite-config-alias.html">上节 配置与别名</a>
+  </footer>
+</div>
+
+<script>
+const Q5 = [
+  {
+    q:"Vite 生态里大部分额外能力（Vue 支持、压缩、PWA）是怎么实现的？",
+    opts:["写进 Vite 核心源码里              ","通过插件在构建钩子里注入逻辑        ","靠修改浏览器内核                    ","必须换用 webpack                  "],
+    ans:1,
+    ok:"对。Vite 核心保持克制，Vue/压缩/PWA 等都是独立插件，在特定构建钩子里插入自定义逻辑。",
+    no:"不对。这些能力不是核心自带的，而是通过插件系统在特定构建时机注入的。"
+  },
+  {
+    q:"下面哪个不属于 Vite/Rollup 插件的常见钩子时机？",
+    opts:["config（读配置时）               ","transform（转换源码时）            ","buildEnd（打包结束）               ","renderReact（渲染 React 组件时）   "],
+    ans:3,
+    ok:"对。renderReact 不是标准钩子；React 支持是由 @vitejs/plugin-react 这个插件本身实现的，不是 Vite 内置钩子。",
+    no:"不对。config/transform/buildEnd 都是标准钩子；renderReact 不是 Vite 的钩子名称。"
+  },
+  {
+    q:"想在项目里用 Vue 单文件组件，正确做法是？",
+    opts:["Vite 默认就支持，无需任何操作      ","安装 @vitejs/plugin-vue 并加到 plugins 数组","把文件后缀改成 .vue.js 即可          ","必须自己写 transform 钩子解析      "],
+    ans:1,
+    ok:"对。Vue 支持来自 @vitejs/plugin-vue 插件，安装后在 vite.config.js 的 plugins 数组里加上 vue() 即可。",
+    no:"不对。Vite 默认不支持 .vue，需要装 @vitejs/plugin-vue 插件并注册到 plugins 数组。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q5.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

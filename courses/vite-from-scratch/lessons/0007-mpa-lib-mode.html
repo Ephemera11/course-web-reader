@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0007 · 多页面（MPA）与库模式</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0007 · 多页面（MPA）与库模式</h1>
+  <div class="meta">Vite 从零入门 · 第 7 课 · 预计 12 分钟</div>
+
+  <p class="lead">你以为 Vite 只能做单页应用（SPA）？其实它也能产出多个独立 HTML 页面，甚至能把你的代码打包成一个可发布的 npm 库。这一课讲两种进阶用法：多页面应用（MPA）和库模式（library mode）。</p>
+
+  <div class="box q"><b>本节目标：</b>理解 MPA 的 build.rollupOptions.input 配置，以及库模式下 lib 字段如何把项目打包成可被别人 import 的库。</div>
+
+  <h2>1. 多页面应用（MPA）</h2>
+  <p>默认 Vite 只有 <code>index.html</code> 一个入口。想加第二个页面（如 <code>admin.html</code>），在配置里声明多个入口：</p>
+  <pre><span class="k">export default</span> defineConfig({
+  build: {
+    rollupOptions: {
+      input: {
+        main: <span class="s">'index.html'</span>,
+        admin: <span class="s">'admin.html'</span>,
+      },
+    },
+  },
+});</pre>
+  <p>build 后 <code>dist/</code> 里会有 <code>index.html</code> 和 <code>admin.html</code> 两个页面，各自独立。适合后台管理 + 前台官网这种多页站。</p>
+
+  <h2>2. 库模式（library mode）</h2>
+  <p>如果你想把自己写的工具函数/组件打包成 npm 包给别人用，用库模式：</p>
+  <pre><span class="k">export default</span> defineConfig({
+  build: {
+    lib: {
+      entry: <span class="s">'src/index.js'</span>,      <span class="c">// 库的入口</span>
+      name: <span class="s">'MyLib'</span>,                <span class="c">// 全局变量名（UMD 用）</span>
+      fileName: <span class="s">'mylib'</span>,             <span class="c">// 产物文件名</span>
+    },
+    rollupOptions: {
+      external: [<span class="s">'vue'</span>],            <span class="c">// 不把 vue 打进包，留给使用者装</span>
+    },
+  },
+});</pre>
+  <div class="box g"><b>外部化（external）是关键：</b>库不应把 React/Vue 这类「运行时依赖」打进产物，否则使用者会装两份。用 <code>external</code> 把它们排除，在 package.json 的 peerDependencies 里声明即可。</div>
+
+  <h2>3. 两种模式对比</h2>
+  <div class="vs">
+    <div class="row"><span class="k">SPA（默认）</span><span class="before">一个 index.html，前端路由切换视图</span><span class="after">最常用，适合 Web 应用</span></div>
+    <div class="row"><span class="k">MPA</span><span class="before">多个独立 HTML 页面</span><span class="after">适合多页站、后台+前台</span></div>
+    <div class="row"><span class="k">库模式</span><span class="before">产出可被 import 的 npm 包</span><span class="after">适合造轮子、组件库</span></div>
+  </div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>概念先收住。</b>下一课（0008）讲 CSS 与静态资源处理——Vite 怎么处理样式、图片、字体。有疑问先消化。
+  </div>
+
+  <footer>
+    课程 0007 · Vite 入门 · 进阶篇
+    · 多页：<a href="https://vite.dev/guide/build#multi-page-app" target="_blank" rel="noopener">build#multi-page-app</a>
+    · 库模式：<a href="https://vite.dev/guide/build#library-mode" target="_blank" rel="noopener">build#library-mode</a>
+    · <a href="0006-env-mode.html">上节 环境变量</a>
+  </footer>
+</div>
+
+<script>
+const Q7 = [
+  {
+    q:"想让 Vite 产出多个独立 HTML 页面（MPA），核心要配置什么？",
+    opts:["改 package.json 的 scripts          ","配置 build.rollupOptions.input 多个入口","必须安装 vite-plugin-mpa 插件       ","把 index.html 复制多份到 src       "],
+    ans:1,
+    ok:"对。在 build.rollupOptions.input 里声明多个 HTML 入口（如 main 和 admin），build 后会产出对应多个页面。",
+    no:"不对。MPA 不需要插件，只要在 build.rollupOptions.input 里声明多个 HTML 入口文件即可。"
+  },
+  {
+    q:"库模式（library mode）里 external 字段的作用是什么？",
+    opts:["指定库的入口文件                  ","把运行时依赖（如 vue）排除在产物外    ","给产物加密                          ","控制开发服务器端口                  "],
+    ans:1,
+    ok:"对。external 让 vue/react 这类运行时依赖不被打进库产物，避免使用者重复安装，由使用者自己提供。",
+    no:"不对。external 的作用是「外部化」依赖——不把 vue 等打进你的库包，交给使用者安装，避免重复打包。"
+  },
+  {
+    q:"下面哪种场景最适合用库模式？",
+    opts:["做一个后台管理系统                ","做一个对外可分发的组件库/npm 包       ","做一个单页博客                      ","做一个多页企业官网                  "],
+    ans:1,
+    ok:"对。库模式产出的是可被别人 import 的包，适合造组件库、工具库并发布到 npm。",
+    no:"不对。库模式用于产出可被他人 import 的 npm 包（组件库/工具库）；应用类需求用 SPA/MPA 更合适。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q7.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

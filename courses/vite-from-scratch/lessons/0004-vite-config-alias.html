@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0004 · vite.config.js 与路径别名 @</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0004 · vite.config.js 与路径别名 @</h1>
+  <div class="meta">Vite 从零入门 · 第 4 课 · 预计 13 分钟</div>
+
+  <p class="lead">前 3 课我们零配置跑起来了项目。但真实项目需要配置：端口、别名、插件。这一课讲 Vite 唯一的配置文件 vite.config.js，重点搞定最常用的「路径别名 @ → src」。配好之后，你就能写 <code>import x from '@/utils'</code> 而不用写一长串 <code>../../</code>。</p>
+
+  <div class="box q"><b>本节目标：</b>能写出一个最小 vite.config.js，配好 <code>@</code> 别名，并理解它为什么能让你少写 <code>../</code>。</div>
+
+  <h2>1. 配置文件长什么样</h2>
+  <p>项目根目录新建 <code>vite.config.js</code>，默认导出配置对象：</p>
+  <pre><span class="c">// vite.config.js</span>
+<span class="k">import</span> { defineConfig } <span class="k">from</span> <span class="s">'vite'</span>;
+
+<span class="k">export default</span> defineConfig({
+  <span class="c">// 这里是配置项</span>
+});</pre>
+  <p><code>defineConfig</code> 不是必须的，但它提供 TypeScript 类型提示，强烈建议用。</p>
+
+  <h2>2. 路径别名 @</h2>
+  <p>没有别名时，深层文件要写 <code>import api from '../../../utils/api'</code>，又丑又易错。配了 <code>@</code> 指向 <code>src</code> 后，全项目统一写 <code>import api from '@/utils/api'</code>。</p>
+  <pre><span class="k">import</span> { defineConfig } <span class="k">from</span> <span class="s">'vite'</span>;
+<span class="k">import</span> { fileURLToPath, URL } <span class="k">from</span> <span class="s">'node:url'</span>;
+
+<span class="k">export default</span> defineConfig({
+  resolve: {
+    alias: {
+      <span class="s">'@'</span>: fileURLToPath(<span class="k">new</span> URL(<span class="s">'./src'</span>, <span class="k">import</span>.meta.url)),
+    },
+  },
+});</pre>
+  <div class="box g"><b>要点：</b>别名值必须是一个<b>绝对路径</b>。<code>fileURLToPath(new URL('./src', import.meta.url))</code> 是在 ESM 环境里把 <code>./src</code> 转成绝对路径的标准写法——比写 <code>__dirname</code> 更现代。</div>
+
+  <h2>3. 顺手配几个常用项</h2>
+  <div class="schema">
+    <div class="row"><span class="key">server.port</span><span class="val">改开发服务器端口，如 <code>5174</code>，避免和别的项目冲突</span></div>
+    <div class="row"><span class="key">server.open</span><span class="val"><code>true</code> 启动后自动打开浏览器</span></div>
+    <div class="row"><span class="key">base</span><span class="val">部署到子路径时设，如 <code>/my-app/</code>；根域名部署留空</span></div>
+  </div>
+  <pre><span class="k">export default</span> defineConfig({
+  base: <span class="s">'/'</span>,
+  server: { port: <span class="n">5174</span>, open: <span class="k">true</span> },
+  resolve: { alias: { <span class="s">'@'</span>: fileURLToPath(<span class="k">new</span> URL(<span class="s">'./src'</span>, <span class="k">import</span>.meta.url)) } },
+});</pre>
+
+  <h2>4. 改完配置要重启</h2>
+  <p>vite.config.js 的改动<b>不会热更新</b>——必须停掉 <code>npm run dev</code> 重新启动才生效。这是新手常踩的小坑。</p>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>动手配一下。</b>在你第 2 课跑起的项目里建 vite.config.js、加 <code>@</code> 别名、把 main.js 改成 <code>import '@/style.css'</code> 试试。下一课（0005）讲插件——Vite 真正的扩展点。
+  </div>
+
+  <footer>
+    课程 0004 · Vite 入门 · 配置篇
+    · 配置文档：<a href="https://vite.dev/config/" target="_blank" rel="noopener">vite.dev/config</a>
+    · <a href="0003-index-html-esm.html">上节 模块图</a>
+  </footer>
+</div>
+
+<script>
+const Q4 = [
+  {
+    q:"vite.config.js 里为什么建议用 defineConfig 包裹配置？",
+    opts:["它是语法必须的，不写就报错          ","它提供类型提示，配置写错能被 IDE 标红  ","它让构建速度变快一倍              ","它替代了 package.json              "],
+    ans:1,
+    ok:"对。defineConfig 本身不改变运行行为，但带来 TypeScript 类型提示，配置项拼错时 IDE 能立刻标红。",
+    no:"不对。defineConfig 不是语法必需，它的价值是类型提示——配置写错 IDE 能标红，减少低级错误。"
+  },
+  {
+    q:"配置路径别名 @ 指向 src 时，别名的值应该是什么类型？",
+    opts:["相对路径字符串如 './src'           ","绝对路径（如通过 fileURLToPath 得到）","一个 URL 对象                       ","别名随便写，Vite 会自动猜            "],
+    ans:1,
+    ok:"对。Vite 的 alias 值必须是绝对路径，常用 fileURLToPath(new URL('./src', import.meta.url)) 在 ESM 里得到它。",
+    no:"不对。别名值必须是绝对路径，直接写 './src' 这种相对字符串在解析时会出错；需转成绝对路径。"
+  },
+  {
+    q:"修改了 vite.config.js 之后，正确的做法是？",
+    opts:["保存即自动生效，无需任何操作        ","必须重启 dev 服务器才生效           ","运行 npm run build 即可             ","改 base 才需要重启，其他不用        "],
+    ans:1,
+    ok:"对。配置文件改动不走 HMR，必须停掉并重新 npm run dev 才能加载新配置。",
+    no:"不对。vite.config.js 的改动不会热更新，必须手动重启开发服务器才会生效。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q4.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0009 · 构建优化：让产物更小更快</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0009 · 构建优化：让产物更小更快</h1>
+  <div class="meta">Vite 从零入门 · 第 9 课 · 预计 13 分钟</div>
+
+  <p class="lead">Vite 的默认打包已经不错，但真实上线前常要再挤一挤：拆分包、压缩、按需加载。这一课讲三个最常用、收益最高的优化手段，理解「为什么」比背配置更重要。</p>
+
+  <div class="box q"><b>本节目标：</b>理解代码分割（code splitting）、依赖预构建、以及 manualChunks 手动分包的作用与配置。</div>
+
+  <h2>1. 代码分割（动态 import）</h2>
+  <p>写 <code>import()</code>（动态导入）而不是顶层 <code>import</code>，Vite 会自动把那部分代码拆成单独的文件，<b>用到时才加载</b>：</p>
+  <pre><span class="c">// 点击时才加载 heavy.js，首屏不下载它</span>
+btn.onclick = <span class="k">async</span> () => {
+  <span class="k">const</span> { doSomething } = <span class="k">await</span> <span class="k">import</span>(<span class="s">'./heavy.js'</span>);
+  doSomething();
+};</pre>
+  <p>这叫「按需加载」或「懒加载」，能显著减小首屏体积。</p>
+
+  <h2>2. 依赖预构建（optimizeDeps）</h2>
+  <p>第 1 课提过，Vite 开发时用 esbuild 预构建 node_modules 的依赖。你可以控制它：</p>
+  <pre><span class="k">export default</span> defineConfig({
+  optimizeDeps: {
+    include: [<span class="s">'lodash-es'</span>],   <span class="c">// 强制预构建</span>
+    exclude: [<span class="s">'my-local-pkg'</span>], <span class="c">// 跳过预构建</span>
+  },
+});</pre>
+  <div class="box g"><b>为什么要管它？</b>某些包用了特殊语法，esbuild 预构建会报错；或者你想让某个本地包走原生 ESM 不预构建。绝大多数情况不用动，出问题再调。</div>
+
+  <h2>3. 手动分包（manualChunks）</h2>
+  <p>把不常变的第三方库（vue、react）单独打包，利用浏览器缓存——用户二次访问只下载你改动的代码：</p>
+  <pre><span class="k">export default</span> defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: [<span class="s">'vue'</span>, <span class="s">'axios'</span>],
+        },
+      },
+    },
+  },
+});</pre>
+
+  <h2>4. 优化手段一览</h2>
+  <div class="vs">
+    <div class="row"><span class="k">动态 import</span><span class="before">首屏必须全量加载</span><span class="after">按需拆包，首屏更小</span></div>
+    <div class="row"><span class="k">manualChunks</span><span class="before">所有代码混在一个包</span><span class="after">vendor 独立，长缓存复用</span></div>
+    <div class="row"><span class="k">压缩</span><span class="before">生产默认不压缩</span><span class="after">Vite 默认用 esbuild 压缩，无需配置</span></div>
+  </div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>先理解再动手。</b>下一课（0010）讲部署——把 dist/ 丢到各种平台。有疑问先消化这课的优化思路。
+  </div>
+
+  <footer>
+    课程 0009 · Vite 入门 · 优化篇
+    · 构建：<a href="https://vite.dev/guide/build" target="_blank" rel="noopener">vite.dev/guide/build</a>
+    · <a href="0008-css-assets.html">上节 CSS 与资源</a>
+  </footer>
+</div>
+
+<script>
+const Q9 = [
+  {
+    q:"写动态 import()（而非顶层 import）主要带来什么好处？",
+    opts:["让代码更易读                      ","把该部分拆成独立文件，按需加载减小首屏","编译速度变快一倍                ","可以不用写 export                  "],
+    ans:1,
+    ok:"对。动态 import() 触发代码分割，对应模块被拆成单独 chunk，运行时用到才加载，首屏体积更小。",
+    no:"不对。动态 import() 的核心价值是代码分割与懒加载——把模块拆出去按需加载，减小首屏，不是语法糖。"
+  },
+  {
+    q:"manualChunks 把 vue/axios 等单独打成 vendor 包，主要目的是？",
+    opts:["让构建变慢                        ","利用浏览器缓存，用户二次访问只下改动代码","绕过 ESLint 检查                   ","让代码不能被调试                    "],
+    ans:1,
+    ok:"对。把不常变的库单独分包后，这些文件哈希稳定，浏览器能长期缓存，二次访问只下载你改的业务代码。",
+    no:"不对。manualChunks 的目的是分离稳定的第三方库，利用其哈希稳定实现长缓存复用，提升二次访问速度。"
+  },
+  {
+    q:"关于 Vite 生产构建的压缩，下列说法正确的是？",
+    opts:["需要手动装 terser 并配置           ","Vite 默认就用 esbuild 压缩，无需配置  ","生产构建完全不压缩                  ","必须用 webpack 才能压缩             "],
+    ans:1,
+    ok:"对。Vite 生产构建默认启用 esbuild 压缩 JS，开箱即用，一般不需要额外配置。",
+    no:"不对。Vite 默认已经用 esbuild 压缩生产产物，这是内置行为，不需要你手动配置压缩器。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q9.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

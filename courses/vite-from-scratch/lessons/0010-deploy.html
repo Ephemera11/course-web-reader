@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0010 · 部署：把 dist 送到各种平台</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0010 · 部署：把 dist 送到各种平台</h1>
+  <div class="meta">Vite 从零入门 · 第 10 课 · 预计 13 分钟</div>
+
+  <p class="lead">Vite 的产物是纯静态文件（dist/ 目录）。这意味着它能丢到任何能托管静态文件的地方。这一课对比几种主流部署方式，你按自己情况选。</p>
+
+  <div class="box q"><b>本节目标：</b>知道 Vite 产物是静态文件、能用任意静态托管部署；理解 Vite 官方部署插件、以及 SPA 路由需要 fallback 这个坑。</div>
+
+  <h2>1. 核心认知：产物是静态的</h2>
+  <p><code>npm run build</code> 后得到的 <code>dist/</code>，里面全是 HTML/JS/CSS/图片。它<b>不需要 Node 运行时</b>，随便一个静态服务器就能托管——Nginx、Apache、对象存储（OSS/COS）、CDN、Vercel/Netlify 都行。</p>
+
+  <h2>2. 几种部署方式对比</h2>
+  <div class="vs">
+    <div class="row"><span class="k">Vercel/Netlify</span><span class="before">要配构建命令和输出目录</span><span class="after">最省心，连 Git 自动部署；build 命令 npm run build，输出 dist</span></div>
+    <div class="row"><span class="k">对象存储+OSS</span><span class="before">手动传文件</span><span class="after">把 dist 内容上传到 bucket，配静态网站托管 + CDN</span></div>
+    <div class="row"><span class="k">Nginx</span><span class="before">要写配置</span><span class="after">root 指向 dist；SPA 需加 try_files 兜底到 index.html</span></div>
+    <div class="row"><span class="k">GitHub Pages</span><span class="before">免费但仅静态</span><span class="after">用 actions 构建后推到 gh-pages 分支</span></div>
+  </div>
+
+  <h2>3. SPA 路由的 fallback 坑</h2>
+  <p>如果你用了前端路由（如访问 <code>/about</code> 这个前端路由），用户直接刷新 <code>/about</code> 时，服务器会去找 <code>about.html</code>——找不到就 404。<b>解决：所有未知路径都返回 index.html</b>，让前端路由接管。</p>
+  <pre><span class="c"># Nginx 做法</span>
+location / {
+  try_files $uri $uri/ /index.html;
+}</pre>
+  <div class="box g"><b>Vercel/Netlify 会自动处理这个 fallback</b>（它们识别 SPA）。自己搭 Nginx 才需要手动加。本课你用的阅读器是纯多页（每课一个 HTML），不算 SPA，所以没这坑——但以后做单页应用会碰到。</div>
+
+  <h2>4. 用官方插件部署（可选）</h2>
+  <p>Vercel/Netlify 都有 Vite 部署插件，能自动处理上述细节。但对纯静态站，直接传 dist/ 也完全够用。</p>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>你已经具备完整能力了。</b>下一课（0011）做综合实战——从一个空目录到上线一个真实小项目，把前面 10 课串起来。有疑问先消化。
+  </div>
+
+  <footer>
+    课程 0010 · Vite 入门 · 部署篇
+    · 部署文档：<a href="https://vite.dev/guide/static-deploy" target="_blank" rel="noopener">vite.dev/guide/static-deploy</a>
+    · <a href="0009-build-optimize.html">上节 构建优化</a>
+  </footer>
+</div>
+
+<script>
+const Q10 = [
+  {
+    q:"Vite 执行 npm run build 后产出的 dist/ 目录，本质是什么？",
+    opts:["一个需要 Node 运行的服务器程序       ","纯静态文件（HTML/JS/CSS/图片）        ","一个数据库文件                        ","一个 Docker 镜像                      "],
+    ans:1,
+    ok:"对。Vite 产物是纯静态文件，无需 Node 运行时，任意静态托管（Nginx/OSS/Vercel）都能上线。",
+    no:"不对。dist/ 是纯静态资源，不依赖 Node 运行时，这正是它能部署到任何静态服务器的原因。"
+  },
+  {
+    q:"使用前端路由的 SPA，用户直接刷新 /about 页面可能 404，原因是？",
+    opts:["JS 写错了                        ","服务器去找 about.html 找不到，需要 fallback 到 index.html","浏览器不支持路由                    ","Vite 没打包路由代码                  "],
+    ans:1,
+    ok:"对。SPA 的 /about 是前端路由，刷新时服务器按路径找文件找不到；需配置所有未知路径回退到 index.html 让前端路由接管。",
+    no:"不对。刷新 /about 时服务器会去文件系统找 about.html 而失败；正确做法是用 fallback 把未知路径都返回 index.html。"
+  },
+  {
+    q:"关于 Vercel/Netlify 部署 Vite 项目，下列说法正确的是？",
+    opts:["必须自己写 Nginx 配置              ","它们能自动识别 SPA 并处理路由 fallback  ","只能部署 Node 项目                   ","免费版不支持静态托管                  "],
+    ans:1,
+    ok:"对。Vercel/Netlify 这类平台对 SPA 的 fallback 是自动处理的，你只需指定构建命令和输出目录，比自搭 Nginx 省心。",
+    no:"不对。Vercel/Netlify 会自动处理 SPA 路由 fallback，不需要你手写 Nginx 配置；它们对静态站支持得很好。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q10.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>
