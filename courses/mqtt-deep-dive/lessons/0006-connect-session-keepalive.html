@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0006 · 连接、会话与心跳</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0006 · 连接、会话与心跳</h1>
+  <div class="meta">MQTT 深入 · 第 6 课 · 预计 14 分钟</div>
+
+  <p class="lead">MQTT 是长连接协议：客户端连接后保持 TCP，Broker 需要知道你还活着。这一课讲连接建立流程、<b>会话</b>（离线消息补收的关键）、以及<b>心跳（Keep Alive）</b>怎么让 Broker 判断你死了。</p>
+
+  <div class="box q"><b>本节目标：</b>能说清 CONNECT/CONNACK 握手、Clean Session 开关的意义、Keep Alive 与遗嘱的配合。</div>
+
+  <h2>1. 连接建立（握手）</h2>
+  <p>客户端发 <b>CONNECT</b> 报文（含 Client ID、用户名密码、Keep Alive、Clean Session、遗嘱等），Broker 回 <b>CONNACK</b> 确认并带结果码：</p>
+  <div class="schema">
+    <div class="row"><span class="key">Client ID</span><span class="val">唯一标识，Broker 用它在会话里区分客户端</span></div>
+    <div class="row"><span class="key">CONNACK 结果</span><span class="val">0=接受，1/2/3/4/5=拒绝（协议版本、凭据、未授权等）</span></div>
+  </div>
+
+  <h2>2. 会话（Session）与 Clean Session</h2>
+  <p>会话是 Broker 为每个 Client ID 保存的状态：<b>订阅列表 + 未送达消息</b>。</p>
+  <div class="vs">
+    <div class="row"><span class="k">Clean Session=true</span><span class="before">每次连接全新会话，旧订阅/离线消息全清</span><span class="after">简单无状态，适合大多数场景</span></div>
+    <div class="row"><span class="k">Clean Session=false</span><span class="before">Broker 保留会话；重连时恢复订阅、补发离线消息</span><span class="after">断线续传的关键，弱网设备必备</span></div>
+  </div>
+  <div class="box g"><b>关键认知：</b>「离线补收」= Clean Session=false + QoS&gt;0。设备断开期间 Broker 暂存 QoS 1/2 消息，重连（同 Client ID）后补发。QoS 0 的消息不暂存。</div>
+
+  <h2>3. 心跳（Keep Alive）</h2>
+  <p>连接时声明 Keep Alive 秒数（如 60）。客户端必须在间隔内发任何报文（或空 PINGREQ），否则 Broker 判定它「失联」：</p>
+  <pre><span class="c">// 客户端每 60s 至少发一个 PINGREQ 保活</span>
+connect({ keepalive: <span class="n">60</span> })</pre>
+  <p>Broker 发现超时未收到任何报文，就<b>断开连接并触发遗嘱</b>——这正是遗嘱消息能被「及时」发出的机制。</p>
+
+  <h2>4. 弱网设备的推荐姿势</h2>
+  <div class="schema">
+    <div class="row"><span class="key">Clean Session</span><span class="val">false（保留订阅和离线消息）</span></div>
+    <div class="row"><span class="key">Keep Alive</span><span class="val">30-60s（根据网络质量调）</span></div>
+    <div class="row"><span class="key">遗嘱</span><span class="val">声明离线状态，让系统知道它掉线</span></div>
+    <div class="row"><span class="key">断线重连</span><span class="val">客户端 SDK 自动重连 + 指数退避</span></div>
+  </div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0007）深入报文结构</b>——MQTT 在线上到底传什么、为什么它这么省流量。有疑问先消化。
+  </div>
+
+  <footer>
+    课程 0006 · MQTT 深入 · 协议篇
+    · 会话与心跳：<a href="https://www.emqx.com/zh/blog/mqtt-keep-alive" target="_blank" rel="noopener">EMQX：MQTT Keep Alive</a>
+    · 规范：<a href="https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901037" target="_blank" rel="noopener">OASIS CONNECT</a>
+  </footer>
+</div>
+
+<script>
+const Q6 = [
+  {
+    q:"Clean Session 设为 false 时，重连后会发生什么？",
+    opts:["订阅和离线消息都会丢失              ","恢复之前的订阅，并补发离线期间的消息    ","必须重新发送遗嘱                    ","Client ID 会变化                   "],
+    ans:1,
+    ok:"对。Clean Session=false 让 Broker 保留会话，重连（同 Client ID）后恢复订阅、补发离线期间暂存的 QoS 1/2 消息。",
+    no:"不对。Clean Session=false 正是为了「断线续传」：Broker 保留会话，重连后恢复订阅并补发离线消息。"
+  },
+  {
+    q:"Keep Alive（心跳）的作用是什么？",
+    opts:["让消息传输更快                    ","让 Broker 判断客户端是否还活着        ","加密消息内容                      ","加速 TCP 连接建立                 "],
+    ans:1,
+    ok:"对。客户端周期性发 PINGREQ 保活，Broker 超时未收到任何报文就判定客户端失联、断开并触发遗嘱。",
+    no:"不对。Keep Alive 是保活机制：客户端定时发心跳报文，Broker 超时未收则判定掉线，配合遗嘱广播离线。"
+  },
+  {
+    q:"设备离线期间收到的 QoS 0 消息，重连后能补收吗？",
+    opts:["能，Broker 会暂存所有消息          ","不能，只有 QoS 1/2 的消息会被暂存补发   ","取决于设备型号                    ","只有遗嘱消息会补发                 "],
+    ans:1,
+    ok:"对。离线暂存只针对 QoS 1/2（需确认的消息）；QoS 0 是至多一次，不暂存、重连后不补发。",
+    no:"不对。QoS 0 至多一次且无需确认，Broker 不暂存；能离线补收的是 QoS 1/2 消息（配合 Clean Session=false）。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q6.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0010 · 安全：认证、TLS 与 ACL</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0010 · 安全：认证、TLS 与 ACL</h1>
+  <div class="meta">MQTT 深入 · 第 10 课 · 预计 15 分钟</div>
+
+  <p class="lead">默认 Mosquitto 是「裸奔」的：任何人在 1883 端口都能连接、订阅、发布。上生产前必须做三层安全加固：<b>认证</b>（你是谁）、<b>加密</b>（内容不泄露）、<b>授权</b>（你能碰哪些 Topic）。</p>
+
+  <div class="box q"><b>本节目标：</b>能说出安全三要素（认证/加密/ACL），并给 Mosquitto 配上用户名密码。</div>
+
+  <h2>1. 安全三要素</h2>
+  <div class="schema">
+    <div class="row"><span class="key">认证</span><span class="val">连接时验用户名密码，拒绝陌生人</span></div>
+    <div class="row"><span class="key">加密（TLS）</span><span class="val">消息在传输中加密，防窃听；端口 8883</span></div>
+    <div class="row"><span class="key">授权（ACL）</span><span class="val">控制每个用户能订阅/发布哪些 Topic</span></div>
+  </div>
+
+  <h2>2. 第一层：用户名密码认证</h2>
+  <pre><span class="c"># 1) 创建密码文件（交互输入两次密码）</span>
+mosquitto_passwd -c /etc/mosquitto/passwd alice
+
+<span class="c"># 2) 编辑配置文件（Windows 在 C:\Program Files\mosquitto\mosquitto.conf）</span>
+allow_anonymous <span class="k">false</span>
+password_file /etc/mosquitto/passwd
+
+<span class="c"># 3) 重启并测试</span>
+mosquitto -v -c /etc/mosquitto/mosquitto.conf
+mosquitto_sub -t <span class="s">'test/#'</span> -u alice -P <span class="s">'密码'</span> -v   <span class="c"># 带凭据才能连</span></pre>
+  <div class="box g"><b>重点：</b>设了 <code>allow_anonymous false</code> 后，没有用户名密码的客户端直接被拒——这是「裸奔→安全」最关键的一步。</div>
+
+  <h2>3. 第二层：TLS 加密（8883）</h2>
+  <p>需要 CA 证书 + 服务器证书（可用 certbot 免费签发，或内网自签）。配置后客户端改用 <code>ssl://host:8883</code>：</p>
+  <pre>listener <span class="n">8883</span>
+cafile /etc/mosquitto/certs/ca.crt
+certfile /etc/mosquitto/certs/server.crt
+keyfile /etc/mosquitto/certs/server.key</pre>
+
+  <h2>4. 第三层：ACL 权限控制</h2>
+  <pre><span class="c"># aclfile 配置：alice 只能订阅 device/+/status，不能发布</span>
+user alice
+topic read device/+/status
+
+<span class="c"># 管理员 admin 全部权限</span>
+user admin
+topic <span class="k">readwrite</span> #</pre>
+  <p>ACL 是 IoT 安全的精髓：设备只能碰自己的 Topic，即使密码泄露，攻击者也只能访问受限范围。</p>
+
+  <h2>5. 安全对照速查</h2>
+  <div class="vs">
+    <div class="row"><span class="k">开发环境</span><span class="before">无认证、1883 明文</span><span class="after">本机调试可以</span></div>
+    <div class="row"><span class="k">生产环境</span><span class="before">匿名全开、明文</span><span class="after">灾难：任何人可订阅/发布</span></div>
+    <div class="row"><span class="k">安全生产</span><span class="before">认证 + TLS + ACL</span><span class="after">三层齐全，公网可上线</span></div>
+  </div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0011）综合实战</b>：传感器上报 → Broker → 前端仪表盘，把全部 10 课串起来。有疑问先消化。
+  </div>
+
+  <footer>
+    课程 0010 · MQTT 深入 · 安全篇
+    · Mosquitto 安全：<a href="https://mosquitto.org/man/mosquitto-conf-5.html" target="_blank" rel="noopener">mosquitto.conf 手册</a>
+    · EMQX 安全实践：<a href="https://www.emqx.com/zh/blog/advanced-features-of-mqtt" target="_blank" rel="noopener">EMQX 安全专题</a>
+  </footer>
+</div>
+
+<script>
+const Q10 = [
+  {
+    q:"Mosquitto 里设 allow_anonymous false 的作用是？",
+    opts:["加速消息转发                    ","拒绝无凭据客户端，强制用户名密码认证   ","开启消息压缩                    ","关闭所有日志                    "],
+    ans:1,
+    ok:"对。allow_anonymous false 禁止匿名连接，客户端必须提供合法用户名密码才能连上 Broker。",
+    no:"不对。allow_anonymous false 是关闭匿名访问——无凭据连接直接被拒，这是生产安全的第一步。"
+  },
+  {
+    q:"MQTT 的 TLS 加密监听默认端口是？",
+    opts:["1883                          ","8883                          ","443                           ","8080                          "],
+    ans:1,
+    ok:"对。MQTT TLS 默认端口 8883；明文是 1883。TLS 端口防止传输内容被窃听。",
+    no:"不对。MQTT over TLS 默认端口是 8883，明文是 1883；443 是 HTTPS。"
+  },
+  {
+    q:"ACL（访问控制列表）在 MQTT 里控制的是什么？",
+    opts:["控制 Broker 的 CPU 使用率          ","控制用户能订阅/发布哪些 Topic         ","控制消息的存储时间                ","控制客户端的连接速度              "],
+    ans:1,
+    ok:"对。ACL 按用户配置 Topic 读写权限（read/readwrite），实现「设备只能访问自己范围」的隔离。",
+    no:"不对。ACL 是授权层：限定每个用户能读/写哪些 Topic，让设备只能访问自己该访问的主题。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q10.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0002 · 发布/订阅模型与 Broker</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0002 · 发布/订阅模型与 Broker</h1>
+  <div class="meta">MQTT 深入 · 第 2 课 · 预计 13 分钟</div>
+
+  <p class="lead">上节课说了 MQTT 是发布/订阅模型，这节课把它解剖透：<b>Broker 是核心</b>，Topic 是地址，发布者和订阅者彻底解耦。你学完会理解为什么 MQTT 能轻松做到「一个传感器，N 个消费者」。</p>
+
+  <div class="box q"><b>本节目标：</b>能画出「发布者 → Broker → 订阅者」的链路，理解 Broker 的三个职责，说出解耦带来的实际好处。</div>
+
+  <h2>1. 三个角色</h2>
+  <div class="schema">
+    <div class="row"><span class="key">发布者 Publisher</span><span class="val">发消息给某个 Topic，不知道谁在听。可以是传感器、服务端、App。</span></div>
+    <div class="row"><span class="key">Broker</span><span class="val">消息中间人：接收发布、管理订阅、按 Topic 转发。类似邮局。</span></div>
+    <div class="row"><span class="key">订阅者 Subscriber</span><span class="val">向 Broker 订阅 Topic，收到该主题下的所有消息。可以是 App、数据库写入器、控制台。</span></div>
+  </div>
+
+  <h2>2. Broker 的三大职责</h2>
+  <div class="schema">
+    <div class="row"><span class="key">接收</span><span class="val">接受发布者发来的消息</span></div>
+    <div class="row"><span class="key">匹配</span><span class="val">根据 Topic 找到所有匹配的订阅者（含通配符订阅）</span></div>
+    <div class="row"><span class="key">转发</span><span class="val">把消息投递给每个订阅者</span></div>
+  </div>
+  <p>Broker 还承担：连接管理（客户端上线/离线）、会话状态、QoS 保证、保留消息、遗嘱——后面几课逐个展开。</p>
+
+  <h2>3. 解耦的三种含义</h2>
+  <div class="vs">
+    <div class="row"><span class="k">空间解耦</span><span class="before">发布者要认识每个接收者</span><span class="after">发布者不知道订阅者存在，只发 Topic</span></div>
+    <div class="row"><span class="k">时间解耦</span><span class="before">接收者离线消息就丢</span><span class="after">Broker 可暂存（会话），离线也能补收</span></div>
+    <div class="row"><span class="k">同步解耦</span><span class="before">必须同时在线才能通信</span><span class="after">异步：发布后不等回应，订阅者随时上线收</span></div>
+  </div>
+
+  <h2>4. 一对多实时广播</h2>
+  <p>经典场景：一个传感器发布 <code>sensor/temp</code>，同时有 App、Web 仪表盘、数据库写入器三个订阅者。消息一到 Broker，<b>瞬间复制转发给三个</b>。加第 4 个消费者不用改传感器任何代码——这就是解耦的威力。</p>
+  <div class="box g"><b>关键认知：</b>MQTT 的「一对一」其实是「一对多」的特例（只有一个订阅者）。所以 MQTT 天然广播，这正是 IoT 需要而 HTTP 要绕弯子才做到的事。</div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0003）讲 Topic 结构与通配符</b>——订阅怎么精确表达「我要哪些主题」。有疑问先消化这课。
+  </div>
+
+  <footer>
+    课程 0002 · MQTT 深入 · 概念篇
+    · Broker 与发布订阅：<a href="https://www.emqx.com/zh/blog/use-of-mqtt-in-iot" target="_blank" rel="noopener">EMQX：MQTT 在 IoT 中的角色</a>
+  </footer>
+</div>
+
+<script>
+const Q2 = [
+  {
+    q:"MQTT 里 Broker 最核心的职责是什么？",
+    opts:["给设备充电                    ","接收消息、匹配订阅、转发给订阅者    ","存储所有历史消息数据库              ","替代客户端做计算                  "],
+    ans:1,
+    ok:"对。Broker 是中间人：接收发布、按 Topic 匹配订阅者、转发消息，同时管理连接与会话。",
+    no:"不对。Broker 的核心是「接收→匹配→转发」消息，连接管理是附加职责；它不是数据库也不是计算引擎。"
+  },
+  {
+    q:"发布者发布消息时，需要知道哪些订阅者在听吗？",
+    opts:["需要，必须逐个确认                ","不需要，只需发给 Topic，Broker 负责分发  ","只需要知道订阅者数量                ","必须等待所有订阅者确认收到          "],
+    ans:1,
+    ok:"对。发布者只关心 Topic，不关心谁在订阅。订阅者是谁、有几个、是否在线，全由 Broker 处理。",
+    no:"不对。发布者与订阅者完全解耦——发布者只发 Topic，Broker 负责找到所有匹配订阅者并分发。"
+  },
+  {
+    q:"MQTT 的「时间解耦」指的是？",
+    opts:["发布者和订阅者必须同时在线          ","订阅者离线期间的消息可由 Broker 暂存，上线后补收","消息只能在白天发送                  ","消息 24 小时后自动销毁              "],
+    ans:1,
+    ok:"对。时间解耦：Broker 的会话机制能为离线的订阅者暂存消息，订阅者重新上线后收到离线期间的消息。",
+    no:"不对。时间解耦正是 MQTT 相对 HTTP 的优势：订阅者离线时 Broker 可暂存消息（会话），上线后补收，不必同时在线。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q2.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

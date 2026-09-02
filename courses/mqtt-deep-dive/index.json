@@ -1,0 +1,19 @@
+{
+  "id": "mqtt-deep-dive",
+  "title": "MQTT 深入",
+  "kicker": "COURSE",
+  "cover": "forest",
+  "lessons": [
+    {"n":"0001","file":"0001-what-is-mqtt.html","title":"MQTT 是什么：物联网为什么换掉 HTTP"},
+    {"n":"0002","file":"0002-pubsub-broker.html","title":"发布/订阅模型与 Broker"},
+    {"n":"0003","file":"0003-topics-wildcards.html","title":"Topic 结构与通配符"},
+    {"n":"0004","file":"0004-qos-levels.html","title":"QoS 0/1/2：消息可靠性三档"},
+    {"n":"0005","file":"0005-retained-will.html","title":"保留消息与遗嘱消息"},
+    {"n":"0006","file":"0006-connect-session-keepalive.html","title":"连接、会话与心跳"},
+    {"n":"0007","file":"0007-packet-structure.html","title":"报文结构：MQTT 在线上到底传什么"},
+    {"n":"0008","file":"0008-mosquitto-broker.html","title":"动手：搭建 Mosquitto Broker"},
+    {"n":"0009","file":"0009-clients-js-php.html","title":"客户端实战：MQTT.js 与 PHP"},
+    {"n":"0010","file":"0010-security-auth-tls-acl.html","title":"安全：认证、TLS 与 ACL"},
+    {"n":"0011","file":"0011-sensor-dashboard.html","title":"综合实战：传感器上报 + 实时仪表盘"}
+  ]
+}

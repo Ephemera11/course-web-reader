@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0005 · 保留消息与遗嘱消息</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0005 · 保留消息与遗嘱消息</h1>
+  <div class="meta">MQTT 深入 · 第 5 课 · 预计 14 分钟</div>
+
+  <p class="lead">MQTT 有两个「反直觉但极有用」的机制：<b>保留消息</b>让新订阅者立刻拿到最新状态；<b>遗嘱消息</b>让设备突然断线时 Broker 替它广播「我掉线了」。这课讲透它们解决什么问题、怎么配。</p>
+
+  <div class="box q"><b>本节目标：</b>能解释保留消息解决「晚到订阅者拿不到状态」的问题，能解释遗嘱消息解决「异常断线无人知晓」的问题。</div>
+
+  <h2>1. 痛点：晚到订阅者什么也收不到</h2>
+  <p>MQTT 默认只转发「订阅之后」的消息。一个 App 中午 12:00 订阅 <code>device/status</code>，那 11:59 设备发的「在线」它永远不知道——直到下一次状态变化。对「状态类」信息，这很致命。</p>
+
+  <h2>2. 保留消息（Retained Message）</h2>
+  <p>发布消息时置 <b>retain 标志</b>，Broker 会为这个 Topic <b>记住最后一条</b>。新订阅者订阅时，Broker 立刻把这条保留消息发给它：</p>
+  <pre><span class="c">// 伪代码：发布时置 retain=true</span>
+publish(<span class="s">'device/status'</span>, <span class="s">'online'</span>, { retain: <span class="k">true</span> });</pre>
+  <div class="box g"><b>典型用途：</b>设备状态（在线/离线）、窗帘位置、灯亮度、固件版本——「当前值是什么」这类状态，而不是「每秒发生什么」的事件。事件用普通消息，状态用保留消息。</div>
+
+  <h2>3. 遗嘱消息（Last Will）</h2>
+  <p>客户端连接时<b>先声明遗嘱</b>：指定一个 Topic 和一段内容。如果客户端<b>异常断线</b>（网络断开、断电、崩溃——而不是正常 DISCONNECT），Broker 自动替它发布这条遗嘱：</p>
+  <pre><span class="c">// 连接时声明遗嘱</span>
+connect({
+  will: {
+    topic: <span class="s">'device/status'</span>,
+    payload: <span class="s">'offline'</span>,
+  }
+});</pre>
+  <p>效果：设备崩溃后 1-2 秒内，所有订阅 <code>device/status</code> 的人都收到「offline」——不用轮询、不用超时判断。</p>
+
+  <h2>4. 两者结合：状态机经典组合</h2>
+  <div class="vs">
+    <div class="row"><span class="k">正常启动</span><span class="before">发 retain 消息「online」</span><span class="after">新订阅者立即看到在线</span></div>
+    <div class="row"><span class="k">正常退出</span><span class="before">发 retain 消息「offline」再断开</span><span class="after">状态更新为离线</span></div>
+    <div class="row"><span class="k">异常掉线</span><span class="before">Broker 发遗嘱「offline」</span><span class="after">无需设备配合，自动广播离线</span></div>
+  </div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0006）讲连接、会话与心跳</b>——连接怎么建立、离线消息怎么补收、Broker 怎么判断你死了。有疑问先消化。
+  </div>
+
+  <footer>
+    课程 0005 · MQTT 深入 · 协议篇
+    · 保留与遗嘱：<a href="https://www.emqx.com/zh/blog/mqtt-5-message-expiry-interval-and-other-properties" target="_blank" rel="noopener">EMQX：MQTT 消息属性</a>
+    · 规范：<a href="https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901038" target="_blank" rel="noopener">OASIS Will Message</a>
+  </footer>
+</div>
+
+<script>
+const Q5 = [
+  {
+    q:"保留消息（retain）解决的是什么问题？",
+    opts:["消息发送太慢                    ","晚到的订阅者拿不到最新状态值         ","消息重复接收                      ","Broker 宕机                      "],
+    ans:1,
+    ok:"对。Broker 记住 Topic 最后一条 retain 消息，新订阅者订阅时立刻收到，解决「晚到者看不到当前状态」。",
+    no:"不对。保留消息让 Broker 记住最后一条状态，新订阅者订阅即得——解决的是晚到订阅者拿不到最新状态的问题。"
+  },
+  {
+    q:"设备异常断电（未发 DISCONNECT），怎么让其他人知道它掉线了？",
+    opts:["等它自己恢复后发消息              ","连接时声明的遗嘱消息会被 Broker 自动发布","没有办法，只能人工发现              ","Broker 会发邮件通知               "],
+    ans:1,
+    ok:"对。连接时声明遗嘱（will），异常断线时 Broker 自动替设备发布遗嘱内容（如 offline），其他人立刻感知。",
+    no:"不对。遗嘱消息就是为异常断线设计的：客户端连接时声明，Broker 检测到异常断开时代发，无需设备再发任何东西。"
+  },
+  {
+    q:"下面哪个场景最适合用「保留消息」？",
+    opts:["每秒上报的温度采样                ","窗帘当前位置这类「当前状态」信息      ","一次性的日志                      ","临时聊天消息                      "],
+    ans:1,
+    ok:"对。状态类信息（灯亮灭、窗帘位置、在线状态）适合 retain——新订阅者立即拿到当前值；高频事件类不适合。",
+    no:"不对。保留消息适合「当前状态」类信息（位置、开关、在线状态），因为新订阅者需要立刻知道现在的值；高频事件数据不适合。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q5.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

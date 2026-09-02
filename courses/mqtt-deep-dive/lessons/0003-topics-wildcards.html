@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0003 · Topic 结构与通配符</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0003 · Topic 结构与通配符</h1>
+  <div class="meta">MQTT 深入 · 第 3 课 · 预计 13 分钟</div>
+
+  <p class="lead">Topic 是 MQTT 的「地址」——但和 URL 不同，它不指向一台机器，而是指一类消息。这课讲 Topic 的层级结构、两种通配符，以及真实项目里怎么命名才不踩坑。</p>
+
+  <div class="box q"><b>本节目标：</b>能解释 Topic 的斜杠层级、<code>#</code> 和 <code>+</code> 两个通配符的区别，并为一个设备群设计合理的 Topic 结构。</div>
+
+  <h2>1. Topic 的层级结构</h2>
+  <p>Topic 是 UTF-8 字符串，用斜杠 <code>/</code> 分层，类似文件路径：</p>
+  <pre>house/room1/temp
+house/room1/humidity
+house/room2/temp</pre>
+  <p>层级的意义：让订阅能用通配符「一把抓」一类主题。设计 Topic 时要按<b>从宽到窄</b>分层：站点/设备/传感器类型。</p>
+
+  <h2>2. 两个通配符</h2>
+  <div class="schema">
+    <div class="row"><span class="key">+ 单层</span><span class="val">匹配<b>恰好一层</b>。如订阅 <code>house/+/temp</code> 匹配 room1/room2 的 temp，但不匹配 house/room1/floor1/temp。</span></div>
+    <div class="row"><span class="key"># 多层</span><span class="val">匹配<b>剩余所有层</b>，必须放最后。如订阅 <code>house/#</code> 匹配 house 下所有主题。</span></div>
+  </div>
+  <pre><span class="c"># 举例：house/room1/temp 这条消息会被谁收到？</span>
+订阅 house/room1/temp      → 收到（精确）
+订阅 house/+/temp          → 收到（+ 匹配 room1）
+订阅 house/#               → 收到（# 匹配剩余所有）
+订阅 +/+/temp              → 收到（两个 + 各匹配一层）
+订阅 house/room2/#         → 不收（room1 不匹配 room2）</pre>
+
+  <h2>3. 通配符对比表</h2>
+  <div class="vs">
+    <div class="row"><span class="k">+</span><span class="before">单层，可出现在任意位置</span><span class="after">house/+/temp</span></div>
+    <div class="row"><span class="k">#</span><span class="before">多层，只能放末尾</span><span class="after">house/#</span></div>
+    <div class="row"><span class="k">无通配符</span><span class="before">精确订阅</span><span class="after">house/room1/temp</span></div>
+  </div>
+
+  <h2>4. 命名最佳实践</h2>
+  <div class="schema">
+    <div class="row"><span class="key">推荐</span><span class="val"><code>site/device-id/telemetry/temperature</code> —— 设备数据用分层，细到类型</span></div>
+    <div class="row"><span class="key">推荐</span><span class="val"><code>device/+/command</code> —— 命令用单层通配，方便批量下发</span></div>
+    <div class="row"><span class="key">避免</span><span class="val">用无意义的层级（<code>a/b/c</code>），不留设计意图</span></div>
+    <div class="row"><span class="key">避免</span><span class="val">Topic 里放空格、中文、斜杠开头；大小写敏感，要约定统一</span></div>
+  </div>
+  <div class="box g"><b>关键认知：</b>Topic 是「内容寻址」——订阅者用通配符表达「我要什么类型的数据」，而不是「我要连哪台机器」。设备增减、消费者增减都互不影响。</div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0004）讲 QoS 三档</b>——消息丢失、重复、恰好一次的保证等级。有疑问先消化这课。
+  </div>
+
+  <footer>
+    课程 0003 · MQTT 深入 · 概念篇
+    · Topic 规范：<a href="https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901241" target="_blank" rel="noopener">OASIS Topic Names</a>
+  </footer>
+</div>
+
+<script>
+const Q3 = [
+  {
+    q:"MQTT 里订阅 house/+/temp 会匹配下面哪个主题？",
+    opts:["house/room1/temp               ","house/room1/floor1/temp            ","house/temp                        ","temp                              "],
+    ans:0,
+    ok:"对。+ 匹配恰好一层：house/+/temp 匹配 room1、room2 等单层设备名下的 temp，但不匹配多一层或少一层。",
+    no:"不对。+ 只匹配一层，所以 house/+/temp 只匹配 house/xxx/temp 这种两层结构；多一层（floor1）或少一层都不匹配。"
+  },
+  {
+    q:"通配符 # 的正确用法是？",
+    opts:["可以放在 Topic 中间任意位置        ","只能放在末尾，匹配剩余所有层级      ","和 + 完全等价                     ","只能匹配一层                      "],
+    ans:1,
+    ok:"对。# 必须放末尾，匹配它之后的所有层级。如 house/# 匹配 house 下任意深度的主题。",
+    no:"不对。# 匹配剩余所有层级且只能放在末尾；中间用 # 是非法的，单层匹配用 +。"
+  },
+  {
+    q:"订阅者订阅 house/# 会收到 house/room1/temp 和 house/room2 吗？",
+    opts:["两个都收不到                      ","两个都收到                        ","只收到前者                        ","只收到后者                        "],
+    ans:1,
+    ok:"对。# 匹配剩余所有层级，house/# 覆盖 house 下任意深度的主题，两个都匹配。",
+    no:"不对。house/# 匹配 house 之后的所有层级，无论多深都收，所以两个主题都会收到。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q3.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

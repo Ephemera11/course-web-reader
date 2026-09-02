@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0009 · 客户端实战：MQTT.js 与 PHP</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0009 · 客户端实战：MQTT.js 与 PHP</h1>
+  <div class="meta">MQTT 深入 · 第 9 课 · 预计 16 分钟</div>
+
+  <p class="lead">命令行只能测试，真实项目要用代码。这一课写两个客户端：Node 的 <b>MQTT.js</b> 和 PHP 的 <b>php-mqtt</b>——覆盖你熟悉的两条技术栈，连上第 8 课装的 Mosquitto 跑通「发布/订阅」。</p>
+
+  <div class="box q"><b>本节目标：</b>能用 MQTT.js 和 PHP 各写一个能连 Broker、订阅、发布的客户端。</div>
+
+  <h2>1. Node：MQTT.js 发布与订阅</h2>
+  <pre><span class="c">// 安装：npm i mqtt</span>
+<span class="k">const</span> mqtt = <span class="k">require</span>(<span class="s">'mqtt'</span>);
+<span class="k">const</span> client = mqtt.connect(<span class="s">'mqtt://localhost:1883'</span>);
+
+client.on(<span class="s">'connect'</span>, () => {
+  client.subscribe(<span class="s">'sensor/temp'</span>);
+  client.publish(<span class="s">'sensor/temp'</span>, <span class="s">'23.5'</span>);
+});
+
+client.on(<span class="s">'message'</span>, (topic, payload) => {
+  console.log(topic, payload.toString());
+});</pre>
+  <p>跑起来你会看到自己发的消息又收回来——因为你也订阅了。这正好验证了「发给自己订阅的 Topic」是允许的。</p>
+
+  <h2>2. MQTT.js 连接选项</h2>
+  <div class="schema">
+    <div class="row"><span class="key">clientId</span><span class="val">默认自动生成；Clean Session=false 时一定要固定</span></div>
+    <div class="row"><span class="key">username/password</span><span class="val">安全课用，连接认证</span></div>
+    <div class="row"><span class="key">will</span><span class="val">遗嘱对象 {topic, payload}</span></div>
+    <div class="row"><span class="key">keepalive</span><span class="val">心跳秒数，默认 60</span></div>
+    <div class="row"><span class="key">clean</span><span class="val">Clean Session 开关，默认 true</span></div>
+  </div>
+
+  <h2>3. PHP：php-mqtt 发布</h2>
+  <pre><span class="c">// 安装：composer require php-mqtt/client</span>
+<span class="k">&lt;?php</span>
+<span class="k">use</span> PhpMqtt\Client\MqttClient;
+<span class="k">use</span> PhpMqtt\Client\ConnectionSettings;
+
+<span class="k">$settings</span> = (<span class="k">new</span> ConnectionSettings())
+    -&gt;setUsername(<span class="s">''</span>)
+    -&gt;setPassword(<span class="s">''</span>);
+<span class="k">$mqtt</span> = <span class="k">new</span> MqttClient(<span class="s">'localhost'</span>, <span class="n">1883</span>, <span class="s">'php-publisher'</span>);
+<span class="k">$mqtt</span>-&gt;connect(<span class="k">$settings</span>);
+<span class="k">$mqtt</span>-&gt;publish(<span class="s">'sensor/temp'</span>, <span class="s">'23.5'</span>, <span class="n">1</span>);
+<span class="k">$mqtt</span>-&gt;disconnect();</pre>
+  <p>PHP 发布是同步的：连接 → publish → disconnect。适合「事件触发上报」场景（比如收到 HTTP 请求后转发到 MQTT）。</p>
+
+  <h2>4. PHP：订阅（常驻进程）</h2>
+  <pre><span class="k">&lt;?php</span>
+<span class="k">$mqtt</span> = <span class="k">new</span> MqttClient(<span class="s">'localhost'</span>, <span class="n">1883</span>, <span class="s">'php-subscriber'</span>);
+<span class="k">$mqtt</span>-&gt;connect(<span class="k">$settings</span>);
+<span class="k">$mqtt</span>-&gt;subscribe(<span class="s">'sensor/#'</span>, <span class="k">function</span> (<span class="k">$topic</span>, <span class="k">$message</span>) {
+    echo <span class="s">"收到 [{$topic}] {$message}\n"</span>;
+}, <span class="n">1</span>);
+<span class="k">$mqtt</span>-&gt;loopForever();  <span class="c">// 常驻监听，命令行/supervisor 跑</span></pre>
+
+  <h2>5. 选型速查</h2>
+  <div class="vs">
+    <div class="row"><span class="k">MQTT.js</span><span class="before">Node 生态，事件驱动，适合实时服务</span><span class="after">mqtt://localhost:1883</span></div>
+    <div class="row"><span class="k">php-mqtt</span><span class="before">PHP 同步调用，适合 Web 触发上报</span><span class="after">composer require php-mqtt/client</span></div>
+    <div class="row"><span class="k">命令行</span><span class="before">调试与测试最方便</span><span class="after">mosquitto_pub/sub</span></div>
+  </div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>跑通一个再继续。</b>下一课（0010）讲安全：认证、TLS 与 ACL。卡住就问。
+  </div>
+
+  <footer>
+    课程 0009 · MQTT 深入 · 实操篇
+    · MQTT.js：<a href="https://github.com/mqttjs/MQTT.js" target="_blank" rel="noopener">github.com/mqttjs/MQTT.js</a>
+    · php-mqtt：<a href="https://github.com/php-mqtt/client" target="_blank" rel="noopener">github.com/php-mqtt/client</a>
+  </footer>
+</div>
+
+<script>
+const Q9 = [
+  {
+    q:"MQTT.js 里接收消息的事件名是？",
+    opts:["'data'                         ","'message'                       ","'onReceive'                    ","'subscribe'                    "],
+    ans:1,
+    ok:"对。MQTT.js 用 client.on('message', cb) 接收消息，回调参数是 topic 和 payload。",
+    no:"不对。MQTT.js 的接收事件是 'message'；'data' 是流式事件、'subscribe' 是订阅确认。"
+  },
+  {
+    q:"PHP 里用 php-mqtt 库发布消息的典型模式是？",
+    opts:["常驻监听，事件回调处理所有消息     ","连接 → publish → disconnect（同步短连接）","必须用协程异步                    ","只能发布不能订阅                  "],
+    ans:1,
+    ok:"对。PHP 发布是同步的：connect → publish → disconnect，适合 Web 请求触发上报；订阅才需要常驻。",
+    no:"不对。PHP 发布是同步短连接模式（连接→发布→断开）；常驻监听+回调是订阅模式（loopForever）。"
+  },
+  {
+    q:"客户端连接参数里设置 clientId 并配合 clean=false，目的是？",
+    opts:["加速连接                      ","固定身份，让 Broker 保留会话支持离线补收  ","让消息变加密                    ","让客户端永远在线                "],
+    ans:1,
+    ok:"对。固定 clientId + clean=false，Broker 才能识别「同一个客户端」并保留会话，断线重连后补收离线消息。",
+    no:"不对。固定 clientId 让 Broker 认出是同一个客户端；配合 clean=false 保留会话，才能离线补收。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q9.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

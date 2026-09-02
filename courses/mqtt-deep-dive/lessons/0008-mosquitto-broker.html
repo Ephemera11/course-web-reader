@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0008 · 动手：搭建 Mosquitto Broker</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 120px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0008 · 动手：搭建 Mosquitto Broker</h1>
+  <div class="meta">MQTT 深入 · 第 8 课 · 预计 15 分钟</div>
+
+  <p class="lead">前 7 课全是理论，这一课落地：装 <b>Mosquitto</b>（最流行的开源 Broker），用命令行订阅/发布，亲眼看到消息流转。装好后你就有自己的本地 MQTT 服务器了。</p>
+
+  <div class="box q"><b>验收标准：</b>能在本机启动 mosquitto、用 mosquitto_sub 订阅、用 mosquitto_pub 发布、在订阅端看到消息。</div>
+
+  <h2>1. 安装 Mosquitto</h2>
+  <pre><span class="c"># Windows（choco 或直接装 exe）</span>
+choco install mosquitto
+
+<span class="c"># macOS</span>
+brew install mosquitto
+
+<span class="c"># Ubuntu/Debian</span>
+sudo apt install mosquitto mosquitto-clients</pre>
+  <p>Debian 系装完 mosquitto 服务可能自动启动了，测试时建议先停掉用前台跑：<code>sudo systemctl stop mosquitto</code>。</p>
+
+  <h2>2. 启动 Broker（前台）</h2>
+  <pre><span class="c"># 默认端口 1883，-v 显示详细日志</span>
+mosquitto -v</pre>
+  <p>看到 <code>Opening ipv4 listen socket on port 1883</code> 就成功了。</p>
+
+  <h2>3. 开两个终端：订阅 + 发布</h2>
+  <pre><span class="c"># 终端 1：订阅（保持运行）</span>
+mosquitto_sub -t <span class="s">'test/topic'</span> -v
+
+<span class="c"># 终端 2：发布</span>
+mosquitto_pub -t <span class="s">'test/topic'</span> -m <span class="s">'Hello MQTT'</span></pre>
+  <p>终端 1 立刻打印 <code>test/topic Hello MQTT</code>。恭喜——第一条 MQTT 消息通了。</p>
+  <div class="box g"><b>体验一下通配符：</b>订阅端改成 <code>mosquitto_sub -t 'test/#' -v</code>，然后发布到 <code>test/a</code>、<code>test/b/c</code>——全都收得到。这就是 0003 课讲的 <code>#</code> 多层匹配。</div>
+
+  <h2>4. 常用参数速查</h2>
+  <div class="schema">
+    <div class="row"><span class="key">-t</span><span class="val">Topic</span></div>
+    <div class="row"><span class="key">-m</span><span class="val">消息内容（pub）</span></div>
+    <div class="row"><span class="key">-v</span><span class="val">订阅时显示 Topic（sub）；Broker 显示详细日志</span></div>
+    <div class="row"><span class="key">-h / -p</span><span class="val">Broker 地址 / 端口（默认 localhost:1883）</span></div>
+    <div class="row"><span class="key">-u / -P</span><span class="val">用户名 / 密码（安全课用）</span></div>
+    <div class="row"><span class="key">-q</span><span class="val">QoS 等级（默认 0）</span></div>
+    <div class="row"><span class="key">-r</span><span class="val">发布保留消息（pub）</span></div>
+  </div>
+
+  <h2>5. 验证 QoS 与保留消息</h2>
+  <pre><span class="c"># QoS 2 发布</span>
+mosquitto_pub -t <span class="s">'test/qos'</span> -m <span class="s">'important'</span> -q <span class="n">2</span>
+
+<span class="c"># 保留消息：发布 -r，然后新开订阅端立刻能收到</span>
+mosquitto_pub -t <span class="s">'device/status'</span> -m <span class="s">'online'</span> -r
+mosquitto_sub -t <span class="s">'device/status'</span> -v   <span class="c"># 立刻打印 online，无需等新消息</span></pre>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>动手装一个。</b>下一课（0009）用代码写客户端（MQTT.js / PHP），把命令行升级成程序。卡住就问。
+  </div>
+
+  <footer>
+    课程 0008 · MQTT 深入 · 实操篇
+    · Mosquitto 官方：<a href="https://mosquitto.org/" target="_blank" rel="noopener">mosquitto.org</a>
+    · EMQX 快速入门：<a href="https://www.emqx.com/zh/blog/install-mosquitto-broker" target="_blank" rel="noopener">安装 Mosquitto</a>
+  </footer>
+</div>
+
+<script>
+const Q8 = [
+  {
+    q:"mosquitto 默认监听哪个端口？",
+    opts:["80                             ","1883                           ","8080                          ","5432                          "],
+    ans:1,
+    ok:"对。MQTT 明文默认端口 1883（TLS 是 8883）。装完直接连 localhost:1883。",
+    no:"不对。MQTT 明文默认端口是 1883；80 是 HTTP、8080 常见于代理/测试、5432 是 PostgreSQL。"
+  },
+  {
+    q:"mosquitto_sub -t 'test/#' -v 订阅的是什么？",
+    opts:["只订阅 test/topic 一个主题         ","订阅 test/ 下所有层级主题          ","订阅所有主题                     ","订阅 test 前缀的单层主题           "],
+    ans:1,
+    ok:"对。# 匹配剩余所有层级，test/# 覆盖 test/ 下任意深度的主题，-v 显示 Topic。",
+    no:"不对。test/# 用 # 匹配 test/ 下所有层级（test/a、test/b/c 都收）；只订阅单层用 +。"
+  },
+  {
+    q:"发布命令 mosquitto_pub -t device/status -m online -r 中 -r 的含义是？",
+    opts:["循环发送                     ","发布为保留消息，新订阅者立即收到     ","加密消息                     ","指定 QoS 2                  "],
+    ans:1,
+    ok:"对。-r 表示 retain：Broker 记住这条消息，之后新订阅者订阅 device/status 立即收到 online。",
+    no:"不对。-r 是保留消息标志：Broker 记住最后一条，新订阅者立刻收到；循环是 -l 或脚本，加密是 TLS。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q8.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>
