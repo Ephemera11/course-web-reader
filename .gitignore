@@ -12,3 +12,7 @@ validate-*.js
 
 .vercel
 .vercel
+
+
+# git worktree（本工作流不用 --project，此处为保险）
+.worktrees/
