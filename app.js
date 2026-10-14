@@ -308,7 +308,14 @@
     el._tid = setTimeout(function () { el.classList.add("out"); }, 1600);
   }
 
+  // 图标必须用 SITE_ROOT 绝对路径：reader 页会注入 <base>，相对路径会被打偏成 …/lessons/favicon.svg 而 404
+  function applyFavicon() {
+    var link = document.querySelector('link[rel="icon"]');
+    if (link) link.setAttribute("href", SITE_ROOT + "favicon.svg");
+  }
+
   function boot() {
+    applyFavicon();
     initTheme();
     if ($("#bookRow")) renderShelf();
     else if ($("#content")) initReader();
