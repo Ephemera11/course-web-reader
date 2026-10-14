@@ -1,0 +1,3 @@
+# 内部协作资料 / 迭代记录：仅本地与仓库保留，不发布到 Vercel 线上
+.agent-memory/
+_loop_runs/
