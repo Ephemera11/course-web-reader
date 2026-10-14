@@ -65,9 +65,10 @@
         if (!ids.length) { row.innerHTML = '<div class="shelf-note">暂无课程。</div>'; return; }
         row.innerHTML = "";  // 清空骨架占位（否则会与真实书本并存）
         var bm = loadBookmarks();
-        var pending = ids.length;
-        ids.forEach(function (id) {
-          fetch(SITE_ROOT + COURSES_DIR + "/" + id + "/index.json")
+        // 先并发取齐全部 index.json（结果与 ids 同序），再按 manifest 顺序插入，
+        // 避免书本顺序随网络返回顺序变化（谁先返回谁先插入）。
+        var tasks = ids.map(function (id) {
+          return fetch(SITE_ROOT + COURSES_DIR + "/" + id + "/index.json")
             .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
             .then(function (meta) {
               var color = COVER_COLORS[meta.cover] || COVER_COLORS.oxblood;
@@ -92,15 +93,18 @@
                 '<span class="cover-meta">' + total + ' 章 · 已读 ' + marked + '/' + total + '</span>' +
                 '<span class="spine-line"></span>';
               a.title = meta.title + "（" + total + " 章）";
-              row.appendChild(a);
+              return a;
             })
             .catch(function (err) {
               console.error("课程加载失败:", id, err);
               var d = document.createElement("div");
               d.className = "shelf-note"; d.textContent = "课程「" + id + "」加载失败，见控制台。";
-              row.appendChild(d);
-            })
-            .then(function () { if (--pending === 0) finishShelf(note, ids.length); });
+              return d;  // 失败提示同样占据该课的原始位置，整排书架不消失
+            });
+        });
+        Promise.all(tasks).then(function (nodes) {
+          nodes.forEach(function (n) { row.appendChild(n); });  // 严格按 manifest 顺序
+          finishShelf(note, ids.length);
         });
       })
       .catch(function (err) {
