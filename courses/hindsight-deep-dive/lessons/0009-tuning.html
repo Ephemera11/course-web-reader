@@ -79,11 +79,11 @@
   </div>
 
   <h2>3. recall_min_scores：把噪声清成空</h2>
-  <pre><span class="c">// 最实用的单条调优：让无关查询返回空，而不是一堆勉强相关的</span>
+  <pre><span class="c">// 最实用的单条调优：让没被语义路召回的无关结果被拒</span>
 {
-  <span class="s">"recall_min_scores"</span>: { <span class="s">"reranker"</span>: <span class="n">0.25</span> }
+  <span class="s">"recall_min_scores"</span>: { <span class="s">"semantic"</span>: <span class="n">0.5</span> }
 }</pre>
-  <div class="box g"><b>怎么定阈值？先看自家数据的分数分布。</b>官方给出的实测参考：小 bank 上相关命中 reranker 分 0.7-0.97，不相关 0.0-0.1。另外如果你的 embedding 是多语言的，<code>{"semantic": 0.5}</code> 可能比 reranker 分得更开——<b>用自己的 bank 实测再定，别照抄</b>。</div>
+  <div class="box g"><b>怎么定阈值？只有一条正路：实测自家 bank 的分数分布，别照抄。</b>本课在自己 bank 上的实测（中文、内容同质）：<b>reranker 无区分度</b>——无关查询也给 0.994~0.999；<b>semantic 才有区分度</b>——相关查询 18/30 有值（0.673~0.878），无关查询仅 4/14 有值（0.731~0.758）。设 <code>{"semantic": 0.5}</code> 后：相关 30→18、无关 14→4，砍掉约七成噪声。官方的 <code>{"reranker": 0.25}</code> 建议在多语言 bank 上无效，正是因为 reranker 不区分相关性。</div>
 
   <h2>4. tags：不拆 bank 做隔离</h2>
   <pre><span class="c">// 存的时候打标（retain_tags 默认标签 + 工具级 tags 合并）</span>
@@ -103,7 +103,7 @@ hindsight_retain(content=<span class="s">"..."</span>, tags=[<span class="s">"pr
   <span class="s">"api_url"</span>: <span class="s">"http://127.0.0.1:8888"</span>,
   <span class="s">"recall_budget"</span>: <span class="s">"mid"</span>,
   <span class="s">"recall_types"</span>: <span class="s">"observation"</span>,
-  <span class="s">"recall_min_scores"</span>: { <span class="s">"reranker"</span>: <span class="n">0.25</span> },
+  <span class="s">"recall_min_scores"</span>: { <span class="s">"semantic"</span>: <span class="n">0.5</span> },
   <span class="s">"recall_max_tokens"</span>: <span class="n">4096</span>
 }</pre>
   <div class="box g"><b>改完要重启 Hermes 才生效</b>（配置文件不像 provider 有热加载）。改前先备份原文件。</div>
@@ -127,7 +127,7 @@ const Q9 = [
     q:"检索结果里混进很多不相关记忆，最直接有效的旋钮是？",
     opts:["调高 recall_budget              ","设置 recall_min_scores 阈值       ","改 bank_id                     ","关掉 auto_retain                "],
     ans:1,
-    ok:"对。recall 只排序不判断相关性，用 recall_min_scores 设最小分阈值（如 reranker 0.25）能把无关结果剪成空。",
+    ok:"对。recall 只排序不判断相关性，用 recall_min_scores 设最小分阈值——先实测自家 bank 的分数分布，再决定设哪一路（本课实测该设 semantic 而非 reranker）。",
     no:"不对。噪声问题靠 recall_min_scores 阈值解决——调高 budget 只会挖出更多，反而更吵。"
   },
   {

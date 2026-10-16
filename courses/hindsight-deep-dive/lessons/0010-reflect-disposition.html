@@ -84,16 +84,22 @@
     <div class="row"><span class="key">bank_mission</span><span class="val">reflect 的身份/框架（我想让这个 bank 以什么视角推理）</span></div>
     <div class="row"><span class="key">bank_retain_mission</span><span class="val">retain 的提取导向（引导什么该被抽成事实）</span></div>
   </div>
-  <div class="box q"><b>你的现状：mission 为空。</b>这意味着 reflect 没有一个明确的视角框架——它只能用默认的通用方式推理。对一个已经积累 4893 条事实的 bank 来说，这是个明显可以补上的提升点。</div>
-  <pre><span class="c"># 读取当前 bank 配置（只读）</span>
-curl http://127.0.0.1:8888/v1/default/banks
-<span class="c"># → mission: ""  disposition: {skepticism:3, literalism:3, empathy:3}</span>
+  <div class="box g"><b>你的现状（已优化）：</b>本课配套的优化已给你的 bank 设上 <code>reflect_mission</code>（连同 <code>observations_mission</code> 与 <code>retain_mission</code>）。设置前它是空的——reflect 没有视角框架，只能用默认的通用方式推理。对一个积累了近 5000 条事实的 bank 来说，补上这句话是性价比很高的一步。</div>
+  <pre><span class="c"># ① 读 bank 配置（只读），看 mission 相关键的「实际」名字（本课实测）</span>
+curl http://127.0.0.1:8888/v1/default/banks/hermes/config
+<span class="c"># config 里含三个键：reflect_mission / observations_mission / retain_mission
+# 本课配套优化前它们都是 null（空）</span>
 
-<span class="c"># 设置 reflect mission（走 bank config，不是插件配置）</span>
-PATCH /v1/default/banks/{bank_id}/config
+<span class="c"># ② 写入：PATCH bank config，body 要包在 updates 里</span>
+PATCH /v1/default/banks/hermes/config
+{ <span class="s">"updates"</span>: { <span class="s">"reflect_mission"</span>: <span class="s">"..."</span> } }
 
-<span class="c"># 注意：插件配置里的 bank_mission / bank_retain_mission 是只读的，
-#      写在 Hermes 配置里不会生效——要改必须走 bank 的 config（控制平面或上面的 PATCH）</span></pre>
+<span class="c"># ③ 回读确认：overrides 里会出现写入的键</span>
+<span class="c">#    → overrides: {reflect_mission, observations_mission, retain_mission}</span>
+
+<span class="c"># ⚠ 键名坑：Hermes 插件配置里叫 bank_mission / bank_retain_mission，
+#    但那是只读的（写了不生效）；bank 侧实际叫 reflect_mission 等，
+#    必须走 bank 的 config（PATCH 或控制平面）才真正生效。</span></pre>
 
   <h2>4. mission 怎么写得有用</h2>
   <div class="vs">

@@ -63,7 +63,7 @@
   <div class="box q"><b>本节目标：</b>理解 bank 的隔离语义、多 bank 的读写规则，以及你的场景该用一个还是多个 bank。</div>
 
   <h2>1. Bank 是什么</h2>
-  <p>一个 bank 就是一套独立的知识图谱 + 观察集合，有自己的 ID、mission、disposition 和事实集。默认 bank ID 是 <code>hermes</code>——也就是你现在用的这个（4893 条事实）。</p>
+  <p>一个 bank 就是一套独立的知识图谱 + 观察集合，有自己的 ID、mission、disposition 和事实集。默认 bank ID 是 <code>hermes</code>——也就是你现在用的这个（近 5000 条事实）。</p>
   <pre><span class="c"># 列出你的 banks（只读）</span>
 curl http://127.0.0.1:8888/v1/default/banks
 <span class="c"># → banks: [hermes]  total: 1</span></pre>

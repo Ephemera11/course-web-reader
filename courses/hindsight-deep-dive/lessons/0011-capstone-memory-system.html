@@ -58,7 +58,7 @@
   <h1>课程 0011 · 实战：设计你自己的记忆体系</h1>
   <div class="meta">Hindsight 从入门到精通 · 第 11 课（收官）· 预计 16 分钟</div>
 
-  <p class="lead">前 10 课拆开了讲，这一课把它们组装成一套<b>属于你的、可落地的记忆体系</b>——基于你的真实环境（local_external、bank=hermes、4893 条事实、mission 为空），并配一份排查手册。</p>
+  <p class="lead">前 10 课拆开了讲，这一课把它们组装成一套<b>属于你的、可落地的记忆体系</b>——基于你的真实环境（local_external、单 bank <code>hermes</code>、近 5000 条事实），并配一份排查手册。</p>
 
   <div class="box q"><b>本节目标：</b>产出一份自己的「记忆体系设计 + 优化清单 + 排查手册」。</div>
 
@@ -72,7 +72,7 @@
   <h2>2. 第二步：给你现有 bank 的三项优化</h2>
   <p>结合你的实测快照，三处可以马上动手（<b>改前先备份配置</b>）：</p>
   <div class="vs">
-    <div class="row"><span class="k">① 补 mission</span><span class="before">现在是空 —— reflect 没有视角框架</span><span class="after">写一句明确身份与关注面的话</span></div>
+    <div class="row"><span class="k">① 补 mission</span><span class="before">原本为空 —— reflect 没有视角框架</span><span class="after">已设置 reflect / observations / retain 三个 mission</span></div>
     <div class="row"><span class="k">② 设 min_scores</span><span class="before">未设阈值 —— 无关查询也会返回噪声</span><span class="after">先看自家分数分布，再定阈值</span></div>
     <div class="row"><span class="k">③ 定 disposition</span><span class="before">三档都是默认 3</span><span class="after">按用途调：技术判断调高 skepticism</span></div>
   </div>
@@ -82,11 +82,12 @@
   <span class="s">"api_url"</span>: <span class="s">"http://127.0.0.1:8888"</span>,
   <span class="s">"recall_budget"</span>: <span class="s">"mid"</span>,
   <span class="s">"recall_types"</span>: <span class="s">"observation"</span>,
+  <span class="s">"recall_min_scores"</span>: { <span class="s">"semantic"</span>: <span class="n">0.5</span> },
   <span class="s">"recall_max_tokens"</span>: <span class="n">4096</span>
 }</pre>
 
   <h2>3. 第三步：决定隔离策略（bank vs tags）</h2>
-  <div class="box g"><b>默认建议：不要急着拆 bank。</b>你已经在单 bank 里积累了 4893 条事实，图关联是资产。只有当「检索噪声明显来自不同项目/人」时才拆；否则先用 <b>tags + recall_tags</b> 做软隔离——保留跨话题关联，又能精准过滤。</div>
+  <div class="box g"><b>默认建议：不要急着拆 bank。</b>你已经在单 bank 里积累了近 5000 条事实，图关联是资产。只有当「检索噪声明显来自不同项目/人」时才拆；否则先用 <b>tags + recall_tags</b> 做软隔离——保留跨话题关联，又能精准过滤。</div>
   <pre><span class="c">// 软隔离示例：主题标签</span>
 hindsight_retain(content=<span class="s">"..."</span>, tags=[<span class="s">"project:course-web-reader"</span>])
 

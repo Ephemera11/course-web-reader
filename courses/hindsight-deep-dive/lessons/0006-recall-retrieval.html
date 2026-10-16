@@ -74,22 +74,22 @@
   <h2>2. 融合与重排</h2>
   <div class="schema">
     <div class="row"><span class="key">① 融合</span><span class="val">四路结果合并（fuse），同一条被多路命中的权重更高</span></div>
-    <div class="row"><span class="key">② 重排</span><span class="val">reranker 模型按与查询的真实相关性重新排序</span></div>
+    <div class="row"><span class="key">② 重排</span><span class="val">reranker 模型对候选重新排序（注意：它只排候选，不判断「是否相关」）</span></div>
     <div class="row"><span class="key">③ 截断</span><span class="val">按 <code>recall_max_tokens</code>（默认 4096）截取</span></div>
   </div>
 
   <h2>3. 关键认知：recall 会「排序」，但不会「判断相关性」</h2>
   <div class="box q"><b>这是最容易误判的一点。</b>问一个和记忆库完全不相关的问题，recall 仍会返回「最不坏的那批」——它只负责排序，不负责说「这题没答案」。所以你看到结果里有东西，不代表它真的相关。</div>
-  <pre><span class="c">// 解法：设最小分阈值，让不相关的直接被剪掉</span>
+  <pre><span class="c">// 解法：设最小分阈值，让「没被该路召回」的结果被拒</span>
 {
-  <span class="s">"recall_min_scores"</span>: { <span class="s">"reranker"</span>: <span class="n">0.25</span> }
+  <span class="s">"recall_min_scores"</span>: { <span class="s">"semantic"</span>: <span class="n">0.5</span> }
 }</pre>
-  <p>实测经验：小 bank 上相关命中 reranker 分在 <b>0.7-0.97</b>，不相关的是 <b>0.0-0.1</b>——分得很开，所以 0.25 左右的阈值就能把噪声清成空结果。</p>
+  <p><b>设哪一路必须看自家 bank 的实测分布，不能照抄别人的数字。</b>本课在自己的 bank（中文、内容高度同质）上实测：<b>reranker 对完全无关的查询照样给 0.99+</b>，毫无区分度；而 semantic 在无关查询上有大量 <code>None</code>（说明该路根本没召回它）。所以这里该设的是 <b>semantic</b>，不是 reranker。</p>
 
   <h2>4. 各 score 字段的含义</h2>
   <div class="vs">
-    <div class="row"><span class="k">reranker</span><span class="before">重排模型给的相关性分</span><span class="after">服务端保证有值，最可靠</span></div>
-    <div class="row"><span class="k">semantic</span><span class="before">向量相似度</span><span class="after">多语言 embedding 时可能比 reranker 更准</span></div>
+    <div class="row"><span class="k">reranker</span><span class="before">重排模型给的分</span><span class="after">总有值，但实测不区分相关性（无关查询也 0.99）</span></div>
+    <div class="row"><span class="k">semantic</span><span class="before">向量相似度</span><span class="after">多语言 bank 上区分度最好；未被该路召回时为 null</span></div>
     <div class="row"><span class="k">keyword</span><span class="before">关键词匹配分</span><span class="after">只剪自己那一路</span></div>
     <div class="row"><span class="k">final</span><span class="before">最终综合分</span><span class="after">服务端保证有值</span></div>
   </div>
@@ -136,7 +136,7 @@ const Q6 = [
     opts:["随便填个数字就行                ","设某一路阈值只影响那一路，其他路命中的结果仍会回来","它会让所有检索失效              ","只能设 reranker 且不能改        "],
     ans:1,
     ok:"对。阈值按 score 字段生效、只剪对应检索臂；被别的路命中的结果仍会返回（该路分数为 null），插件还会校验结果是否报告了该段分数。",
-    no:"不对。min_scores 是按字段（reranker/semantic/keyword）分别生效的，只剪自己那一路；其他路命中的结果不受影响。"
+    no:"不对。min_scores 按字段（semantic/reranker/keyword）分别生效，只剪对应那一路；未报告该段分数的结果会被插件拒绝，而其他路命中的结果仍会回来。"
   }
 ];
 const quiz=document.getElementById('quiz');
