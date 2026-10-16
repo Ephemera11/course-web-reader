@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0009 · 配置调优实战：budget / types / min_scores / tags</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 150px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0009 · 配置调优实战：budget / types / min_scores / tags</h1>
+  <div class="meta">Hindsight 从入门到精通 · 第 9 课 · 预计 14 分钟</div>
+
+  <p class="lead">前 8 课是「懂」，这一课是「调」。四个最常用的旋钮——<b>budget（挖多深）、types（看哪层）、min_scores（多严）、tags（看哪块）</b>——组合起来能解决绝大多数「检索不准/太吵/太贵」的问题。</p>
+
+  <div class="box q"><b>本节目标：</b>会用这四个旋钮，并知道每个旋钮各解决什么症状。</div>
+
+  <h2>1. 症状 → 旋钮对照表</h2>
+  <div class="vs">
+    <div class="row"><span class="k">结果太少/漏了</span><span class="before">recall 挖得不够深</span><span class="after">调高 recall_budget（mid → high）</span></div>
+    <div class="row"><span class="k">结果太吵/不相关</span><span class="before">阈值没设，什么都被捞回来</span><span class="after">设 recall_min_scores</span></div>
+    <div class="row"><span class="k">只想要结论</span><span class="before">塞了太多原始事实</span><span class="after">保持 recall_types = observation</span></div>
+    <div class="row"><span class="k">只关心某项目</span><span class="before">检索范围太大</span><span class="after">recall_tags 过滤</span></div>
+    <div class="row"><span class="k">注入太长/太贵</span><span class="before">返回量太大</span><span class="after">调低 recall_max_tokens</span></div>
+  </div>
+
+  <h2>2. recall_budget：彻底度</h2>
+  <div class="schema">
+    <div class="row"><span class="key">low</span><span class="val">最快最省，适合日常闲聊</span></div>
+    <div class="row"><span class="key">mid</span><span class="val"><b>默认</b>，平衡</span></div>
+    <div class="row"><span class="key">high</span><span class="val">挖得最深，适合「怎么找都找不到」时排查</span></div>
+  </div>
+
+  <h2>3. recall_min_scores：把噪声清成空</h2>
+  <pre><span class="c">// 最实用的单条调优：让无关查询返回空，而不是一堆勉强相关的</span>
+{
+  <span class="s">"recall_min_scores"</span>: { <span class="s">"reranker"</span>: <span class="n">0.25</span> }
+}</pre>
+  <div class="box g"><b>怎么定阈值？先看自家数据的分数分布。</b>官方给出的实测参考：小 bank 上相关命中 reranker 分 0.7-0.97，不相关 0.0-0.1。另外如果你的 embedding 是多语言的，<code>{"semantic": 0.5}</code> 可能比 reranker 分得更开——<b>用自己的 bank 实测再定，别照抄</b>。</div>
+
+  <h2>4. tags：不拆 bank 做隔离</h2>
+  <pre><span class="c">// 存的时候打标（retain_tags 默认标签 + 工具级 tags 合并）</span>
+hindsight_retain(content=<span class="s">"..."</span>, tags=[<span class="s">"project-x"</span>])
+
+<span class="c">// 查的时候过滤（JSON 列表或逗号分隔字符串都行）</span>
+{ <span class="s">"recall_tags"</span>: <span class="s">"project-x, deploy"</span> }
+
+<span class="c">// 匹配模式</span>
+{ <span class="s">"recall_tags_match"</span>: <span class="s">"any"</span> }   <span class="c">// any / all / any_strict / all_strict</span></pre>
+  <div class="box q"><b>注意 reflect 的 tags 是独立的</b>：<code>reflect_tags</code> 与 <code>recall_tags</code> 是两个键。不设 <code>reflect_tags</code> 时，reflect 用整个 bank；<code>recall_tags</code> 不会影响 reflect。</div>
+
+  <h2>5. 一个可用的起步配置</h2>
+  <pre><span class="c">// $HERMES_HOME/hindsight/config.json</span>
+{
+  <span class="s">"mode"</span>: <span class="s">"local_external"</span>,
+  <span class="s">"api_url"</span>: <span class="s">"http://127.0.0.1:8888"</span>,
+  <span class="s">"recall_budget"</span>: <span class="s">"mid"</span>,
+  <span class="s">"recall_types"</span>: <span class="s">"observation"</span>,
+  <span class="s">"recall_min_scores"</span>: { <span class="s">"reranker"</span>: <span class="n">0.25</span> },
+  <span class="s">"recall_max_tokens"</span>: <span class="n">4096</span>
+}</pre>
+  <div class="box g"><b>改完要重启 Hermes 才生效</b>（配置文件不像 provider 有热加载）。改前先备份原文件。</div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0010）讲 reflect 与 disposition</b>——让记忆不只是「被查到」，还能「会推理」。有疑问先消化。
+  </div>
+
+  <footer>
+    课程 0009 · Hindsight 深入 · 实操篇
+    · 全部配置键：<a href="https://hermes-agent.nousresearch.com/docs/plugins/hindsight" target="_blank" rel="noopener">Hermes · Hindsight 配置表</a>
+  </footer>
+</div>
+
+<script>
+const Q9 = [
+  {
+    q:"检索结果里混进很多不相关记忆，最直接有效的旋钮是？",
+    opts:["调高 recall_budget              ","设置 recall_min_scores 阈值       ","改 bank_id                     ","关掉 auto_retain                "],
+    ans:1,
+    ok:"对。recall 只排序不判断相关性，用 recall_min_scores 设最小分阈值（如 reranker 0.25）能把无关结果剪成空。",
+    no:"不对。噪声问题靠 recall_min_scores 阈值解决——调高 budget 只会挖出更多，反而更吵。"
+  },
+  {
+    q:"recall_tags 和 reflect_tags 是什么关系？",
+    opts:["是同一个配置的两个别名          ","两个独立配置：前者管 recall，后者管 reflect 的范围","reflect_tags 优先于 recall_tags  ","recall_tags 会自动应用到 reflect  "],
+    ans:1,
+    ok:"对。两者独立：recall_tags 过滤 recall；reflect_tags 界定 reflect 推理的范围，不设则 reflect 用整个 bank。",
+    no:"不对。它们互相独立——recall_tags 不影响 reflect；reflect 的范围由 reflect_tags 决定，不看 recall_tags。"
+  },
+  {
+    q:"想让日常对话注入更省 token，可以调哪个？",
+    opts:["调高 recall_max_tokens           ","调低 recall_max_tokens 或收紧 recall_types","调高 recall_budget             ","把所有记忆移到新 bank              "],
+    ans:1,
+    ok:"对。调低 recall_max_tokens 限制返回量，或保持 recall_types=observation 只给结论层，都能降低注入体积。",
+    no:"不对。省 token 要「少给」：调低 recall_max_tokens、并把 recall_types 收紧到 observation（默认就是）。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q9.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

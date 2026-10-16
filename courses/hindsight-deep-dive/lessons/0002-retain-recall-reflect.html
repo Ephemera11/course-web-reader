@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0002 · 三核心操作：retain / recall / reflect</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 140px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0002 · 三核心操作：retain / recall / reflect</h1>
+  <div class="meta">Hindsight 从入门到精通 · 第 2 课 · 预计 13 分钟</div>
+
+  <p class="lead">Hindsight 的全部能力归结为三件事：<b>存进去（retain）、找出来（recall）、想明白（reflect）</b>。这一课把三者的分工、输入输出、代价差异讲清楚——分不清这三者，就永远调不好记忆。</p>
+
+  <div class="box q"><b>本节目标：</b>能准确说出三个操作各自做什么、什么时候用哪个、以及哪个最贵。</div>
+
+  <h2>1. 三者对比（核心表）</h2>
+  <div class="vs">
+    <div class="row"><span class="k">用途</span><span class="before">retain：存信息</span><span class="after">recall：找信息 / reflect：推理信息</span></div>
+    <div class="row"><span class="k">输入</span><span class="before">原始文本、对话、文档</span><span class="after">recall 是搜索词；reflect 是问题</span></div>
+    <div class="row"><span class="k">输出</span><span class="before">记忆 ID（存了就行）</span><span class="after">recall 是排序后的条目；reflect 是成段回答</span></div>
+    <div class="row"><span class="k">用 LLM 吗</span><span class="before">用（抽取事实）</span><span class="after">recall 不用；reflect 用（生成回答）</span></div>
+  </div>
+
+  <h2>2. Retain：存，但不是「原样存」</h2>
+  <p>你丢进去一段文本，Hindsight 用 LLM 把它拆成结构化的事实、识别实体、建立关联。所以 retain <b>不是零成本的写入</b>——每条都过一遍模型。这也是为什么「存什么」要克制。</p>
+  <pre><span class="c">// 工具用法（也可自动 retain 每轮对话）</span>
+hindsight_retain(content=<span class="s">"用户偏好中文回答"</span>, context=<span class="s">"user preference"</span>)</pre>
+  <div class="box g"><b>自动 vs 手动：</b><code>auto_retain</code> 默认开启，每轮对话自动存（含工具调用）。自动存是「广撒网」，手动 <code>hindsight_retain</code> 是「重点标注」——重要结论主动存，带 tags 便于日后精准检索。</div>
+
+  <h2>3. Recall：找，且不需要 LLM</h2>
+  <p>recall 是纯检索：多路策略并行搜索 + 融合 + 重排。因为不调用 LLM 生成，它<b>快且便宜</b>。返回的是排序后的 <b>facts + observations</b>。</p>
+  <pre>hindsight_recall(query=<span class="s">"这个项目的部署方式"</span>)</pre>
+  <div class="box"><b>注意一个常见困惑：</b>recall 返回空不代表坏了——记忆需要至少一次 retain 周期，而且抽取本身是 LLM 调用（有延迟）。刚存的事实，下一轮才查得到。</div>
+
+  <h2>4. Reflect：想，最贵但最有用</h2>
+  <p>reflect 会召回相关记忆与观察，应用 bank 的 <b>disposition</b>（性格倾向），让 LLM 基于证据推理出一个回答。它不是「搜索」，是「跨记忆的综合推理」。</p>
+  <pre>hindsight_reflect(query=<span class="s">"我在这个项目上形成了哪些稳定的工作习惯？"</span>)</pre>
+  <p>recall 给你「相关的事实清单」，reflect 给你「一段有理有据的结论」——这是 Hindsight 相对其他 provider 最独特的能力。</p>
+
+  <h2>5. 什么时候用哪个</h2>
+  <div class="schema">
+    <div class="row"><span class="key">要记住事</span><span class="val">retain（或依赖 auto_retain 自动存）</span></div>
+    <div class="row"><span class="key">要查具体事实</span><span class="val">recall —— 快、便宜、给清单</span></div>
+    <div class="row"><span class="key">要综合判断</span><span class="val">reflect —— 慢、贵、给结论</span></div>
+  </div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0003）讲 Bank</b>——记忆的分区与隔离，决定「什么和什么放在一起」。有疑问先消化这课。
+  </div>
+
+  <footer>
+    课程 0002 · Hindsight 深入 · 概念篇
+    · 三核心操作官方说明：<a href="https://hindsight.vectorize.io/developer/api/main-methods" target="_blank" rel="noopener">Hindsight · Main Methods</a>
+  </footer>
+</div>
+
+<script>
+const Q2 = [
+  {
+    q:"三个操作里，哪一个不需要调用 LLM 生成？",
+    opts:["retain 不需要                  ","recall 不需要（纯检索融合重排）    ","reflect 不需要                  ","三个都不需要                    "],
+    ans:1,
+    ok:"对。recall 是检索：多路并行搜索 + 融合 + 重排，不调 LLM 生成，所以快且便宜；retain 抽取和 reflect 生成都要用 LLM。",
+    no:"不对。recall 是纯检索不需要 LLM；retain 要用 LLM 抽取事实，reflect 要用 LLM 生成推理回答。"
+  },
+  {
+    q:"recall 和 reflect 的核心区别是？",
+    opts:["recall 更贵，reflect 更便宜       ","recall 给相关事实清单，reflect 给综合推理结论","recall 只能查一条，reflect 查全部  ","两者完全等价                    "],
+    ans:1,
+    ok:"对。recall 返回排序后的相关事实/观察清单；reflect 召回证据后经 LLM 推理输出一段结论，还会应用 bank 的 disposition。",
+    no:"不对。recall 是「给清单」，reflect 是「给结论」——后者会推理并应用 disposition，是 Hindsight 最独特的能力。"
+  },
+  {
+    q:"刚 retain 完一条事实，立刻 recall 却查不到，最可能的原因是？",
+    opts:["Hindsight 坏了，需要重启         ","抽取是异步 LLM 调用，需要一点时间才能被检索到","recall 只能查一周前的数据          ","必须重启 Hermes 才行             "],
+    ans:1,
+    ok:"对。retain 的抽取是 LLM 调用（且默认异步处理），需要至少一个处理周期后才会出现在检索结果里。",
+    no:"不对。这是正常行为：retain 的抽取由 LLM 完成且默认异步，刚写入的事实要等处理完才能被 recall 到。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q2.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

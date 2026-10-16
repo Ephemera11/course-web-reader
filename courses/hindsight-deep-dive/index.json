@@ -1,0 +1,19 @@
+{
+  "id": "hindsight-deep-dive",
+  "title": "Hindsight 从入门到精通",
+  "kicker": "COURSE",
+  "cover": "indigo",
+  "lessons": [
+    {"n":"0001","file":"0001-why-long-term-memory.html","title":"为什么 LLM 需要长期记忆：Hermes 的三层记忆体系"},
+    {"n":"0002","file":"0002-retain-recall-reflect.html","title":"三核心操作：retain / recall / reflect"},
+    {"n":"0003","file":"0003-memory-bank.html","title":"记忆 Bank：隔离与组织"},
+    {"n":"0004","file":"0004-fact-types.html","title":"事实三类型：observation / world / experience"},
+    {"n":"0005","file":"0005-retain-knowledge-graph.html","title":"Retain 内部：知识图谱与实体解析"},
+    {"n":"0006","file":"0006-recall-retrieval.html","title":"Recall 内部：四路检索、融合与重排"},
+    {"n":"0007","file":"0007-consolidation.html","title":"观察整合：consolidation 与去重进化"},
+    {"n":"0008","file":"0008-install-modes.html","title":"安装与三种模式：cloud / local_embedded / local_external"},
+    {"n":"0009","file":"0009-tuning.html","title":"配置调优实战：budget / types / min_scores / tags"},
+    {"n":"0010","file":"0010-reflect-disposition.html","title":"Reflect 与 disposition：让记忆会推理"},
+    {"n":"0011","file":"0011-capstone-memory-system.html","title":"实战：设计你自己的记忆体系"}
+  ]
+}

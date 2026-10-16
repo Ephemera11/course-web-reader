@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0007 · 观察整合：consolidation 与去重进化</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 140px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0007 · 观察整合：consolidation 与去重进化</h1>
+  <div class="meta">Hindsight 从入门到精通 · 第 7 课 · 预计 13 分钟</div>
+
+  <p class="lead">原始事实会越堆越多（你的 bank 已 4893 条），但结论不该越堆越多。<b>consolidation（整合）</b>负责把重复、相似的事实收敛成稳定的观察，并且会随新证据<b>持续修正</b>。这一课讲清它的分组规则 <code>observation_scopes</code>——一个直接影响「记忆会不会串味」的关键配置。</p>
+
+  <div class="box q"><b>本节目标：</b>理解整合的收敛与修正机制，并能选对 observation_scopes 的分组方式。</div>
+
+  <h2>1. 整合做两件事</h2>
+  <div class="schema">
+    <div class="row"><span class="key">收敛</span><span class="val">多条重复/相似的原始事实 → 一条观察（去重）</span></div>
+    <div class="row"><span class="key">修正</span><span class="val">新证据到来时，观察会被<b>更新</b>而不是简单追加——带上证据计数与新鲜度</span></div>
+  </div>
+  <pre><span class="c"># 第一次整合</span>
+observation: 用户偏好中文交流（证据 3）
+
+<span class="c"># 后来用户明确说「以后都用中文」</span>
+observation: 用户明确要求始终用中文（证据 4，新鲜度更高）</pre>
+  <p>所以「记忆会进化」：不是流水账，而是不断修订的信念。这也是为什么 <b>recall 默认优先给观察</b>——它代表当前最优结论。</p>
+
+  <h2>2. observation_scopes：观察按什么分组</h2>
+  <div class="vs">
+    <div class="row"><span class="k">combined</span><span class="before">一次遍历所有 tags，合并成一批观察</span><span class="after">默认（Hermes 侧），跨话题融合</span></div>
+    <div class="row"><span class="k">per_tag</span><span class="before">每个 tag 各跑一遍</span><span class="after">tag 多时成本上升</span></div>
+    <div class="row"><span class="k">all_combinations</span><span class="before">每个 tag 子集都跑</span><span class="after">最贵，一般不用</span></div>
+    <div class="row"><span class="k">自定义列表</span><span class="before">如 <code>[["user:alice"], ["project-x"]]</code></span><span class="after">按你定义的维度分别整合</span></div>
+  </div>
+  <div class="box q"><b>官方文档里有个差异要留意</b>：Hermes 侧默认是 <code>combined</code>（一次遍历全部 tags），而 Hindsight 集成文档里该键默认写作 <code>shared</code>（整个 bank 一个 scope，观察跨会话合并，session/parent 标签留在事实上用于过滤）。两者思路一致——<b>让观察能跨会话融合</b>——但配之前值得对齐一下当前版本的实际默认值。</div>
+
+  <h2>3. 为什么分组方式重要</h2>
+  <div class="schema">
+    <div class="row"><span class="key">分得太细</span><span class="val">每个会话/标签独立整合 → 同一个结论被反复推导，观察碎、还不互相修正</span></div>
+    <div class="row"><span class="key">合得太粗</span><span class="val">不同用户/项目的事实混在一起整合 → 观察串味（把 A 项目结论安到 B 上）</span></div>
+  </div>
+  <div class="box g"><b>判断标准：</b>「这些事实放在一起归纳，结论对所有人成立吗？」成立就合并（combined/shared）；不成立就按维度拆（自定义 scopes 或 per_tag）。多人共用 Hermes 时，按用户拆几乎是必须的。</div>
+
+  <h2>4. 与 retain 其他旋钮的关系</h2>
+  <div class="schema">
+    <div class="row"><span class="key">retain_every_n_turns</span><span class="val">每 N 轮才存一次，降成本</span></div>
+    <div class="row"><span class="key">retain_async</span><span class="val">默认 true，服务端异步处理（不阻塞对话）</span></div>
+    <div class="row"><span class="key">retain_tags</span><span class="val">默认标签，与工具级 tags 合并</span></div>
+    <div class="row"><span class="key">retain_cron</span><span class="val">默认 false——定时任务的输出不进你的记忆</span></div>
+  </div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0008）进入实操</b>：安装与三种部署模式（cloud / local_embedded / local_external），对照你现在的 local_external。有疑问先消化。
+  </div>
+
+  <footer>
+    课程 0007 · Hindsight 深入 · 机制篇
+    · 观察与整合：<a href="https://hindsight.vectorize.io/developer/api/main-methods" target="_blank" rel="noopener">Hindsight · 文档</a>
+  </footer>
+</div>
+
+<script>
+const Q7 = [
+  {
+    q:"consolidation（整合）对观察做的最关键一件事是？",
+    opts:["把观察加密存储                ","随新证据持续修正观察（去重 + 更新）   ","把观察删除重建                ","把观察导出成文件                "],
+    ans:1,
+    ok:"对。整合不只收敛去重，还会随新事实更新观察——带证据计数与新鲜度，所以记忆是「不断修订的信念」。",
+    no:"不对。整合的关键是收敛 + 持续修正：把重复事实合成一条观察，并在新证据到来时更新它，而不是流水账式追加。"
+  },
+  {
+    q:"多人共用一个 Hermes 时，observation_scopes 应该怎么考虑？",
+    opts:["用 combined 合并全部即可          ","按用户维度拆开整合，否则观察会串味   ","必须用 all_combinations            ","这个配置与多人无关              "],
+    ans:1,
+    ok:"对。不同用户的事实合在一起整合会把结论串味（把 A 的偏好安到 B 上），应按用户维度拆分 scope。",
+    no:"不对。多人场景必须按用户维度分组，否则整合出的观察会把不同人的偏好混成一条，造成串味。"
+  },
+  {
+    q:"retain_cron 默认为 false 的含义是？",
+    opts:["定时任务的对话也会自动存进记忆    ","定时任务的输出默认不自动进入记忆库  ","禁止在 cron 里用任何 hindsight 工具 ","cron 无法访问 Hindsight 服务      "],
+    ans:1,
+    ok:"对。默认 false 让定时任务的输出不污染你的记忆库；但 hindsight_retain 工具在 cron 里仍可显式使用。",
+    no:"不对。retain_cron 默认 false 是为了避免 cron 任务的输出自动灌进记忆；工具显式调用仍可用。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q7.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

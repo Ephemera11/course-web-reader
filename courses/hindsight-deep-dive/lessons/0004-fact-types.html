@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0004 · 事实三类型：observation / world / experience</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 140px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0004 · 事实三类型：observation / world / experience</h1>
+  <div class="meta">Hindsight 从入门到精通 · 第 4 课 · 预计 14 分钟</div>
+
+  <p class="lead">这是 Hindsight 最反直觉、也最容易踩坑的设计：它把记忆分成<b>三层</b>——原始事实（world / experience）和<b>整合后的观察</b>（observation）。而 <b>recall 默认只返回 observation</b>。不懂这个，你会以为「我存的东西怎么查不到」。</p>
+
+  <div class="box q"><b>本节目标：</b>分清三种事实类型，理解为什么默认只给观察，以及什么时候该放开。</div>
+
+  <h2>1. 三种事实类型</h2>
+  <div class="schema">
+    <div class="row"><span class="key">world</span><span class="val">关于外部世界的事实。例：项目用 Vite 构建、服务器是 CentOS 7</span></div>
+    <div class="row"><span class="key">experience</span><span class="val">关于经历/交互的事实。例：用户上次要求用中文回答、某次调试花了很久</span></div>
+    <div class="row"><span class="key">observation</span><span class="val"><b>整合层</b>：在原始事实之上归纳出的、去重且有证据支撑的稳定结论</span></div>
+  </div>
+
+  <h2>2. 观察是怎么来的</h2>
+  <p>retain 进来一堆原始事实后，Hindsight 在后台做 <b>consolidation（整合）</b>：把散落的、重复的、相似的事实归纳成一条「观察」，并带上证据计数与新鲜度信号。</p>
+  <pre><span class="c"># 原始事实（多条，零散）</span>
+world: 用户周一用中文提问
+world: 用户周二用中文提问
+world: 用户周三要求中文回答
+
+<span class="c"># ↓ 整合成一条观察</span>
+observation: 用户偏好用中文交流（证据 3 条，近期活跃）</pre>
+  <div class="box g"><b>为什么要这层？</b>因为<b>每 token 的信息密度</b>。与其塞 3 条原始事实占额度，不如塞 1 条已经归纳好的观察。对「每轮自动注入上下文」这种场景，观察更省、更准、更少自相矛盾。</div>
+
+  <h2>3. 关键行为变更：recall 默认只给 observation</h2>
+  <div class="vs">
+    <div class="row"><span class="k">旧行为</span><span class="before">recall 返回全部三种类型</span><span class="after">信息全，但冗余重复</span></div>
+    <div class="row"><span class="k">现默认</span><span class="before">recall_types = observation</span><span class="after">省 token，只给结论层</span></div>
+    <div class="row"><span class="k">想放开</span><span class="before">设 recall_types = observation,world,experience</span><span class="after">连原始证据一起看</span></div>
+  </div>
+  <pre><span class="c">// ~/.hermes/hindsight/config.json（或 $HERMES_HOME/hindsight/config.json）</span>
+{
+  <span class="s">"recall_types"</span>: <span class="s">"observation,world,experience"</span>
+}</pre>
+  <div class="box q"><b>这个设置同时影响两条路径</b>：自动 recall（每轮注入）和 <code>hindsight_recall</code> 工具——工具没有 per-call 的 types 参数，两者读同一个配置。所以收紧默认会同时收紧两处。</div>
+
+  <h2>4. 什么时候该放开</h2>
+  <div class="schema">
+    <div class="row"><span class="key">用默认</span><span class="val">日常问答、想要干净的结论 —— 大多数情况够用</span></div>
+    <div class="row"><span class="key">放开</span><span class="val">需要溯源（这条结论依据哪些原始事实）、或观察还没整合出来急需原始数据</span></div>
+    <div class="row"><span class="key">注意</span><span class="val">放开后 token 消耗上升，且可能拿到互相重复的原始事实</span></div>
+  </div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0005）进 retain 内部</b>——看 LLM 到底把文本抽取成了什么、实体图怎么建。有疑问先消化。
+  </div>
+
+  <footer>
+    课程 0004 · Hindsight 深入 · 机制篇
+    · recall_types 行为变更：<a href="https://hermes-agent.nousresearch.com/docs/plugins/hindsight" target="_blank" rel="noopener">Hermes · Hindsight 配置</a>
+  </footer>
+</div>
+
+<script>
+const Q4 = [
+  {
+    q:"Hindsight 默认 recall 返回哪种类型的记忆？",
+    opts:["全部三种类型一起返回            ","只返回 observation（整合后的观察）  ","只返回 world                     ","只返回 experience                "],
+    ans:1,
+    ok:"对。recall_types 默认已收紧为 observation——观察是去重且有证据支撑的整合层，每 token 信息密度更高。",
+    no:"不对。默认只返回 observation（整合层）；想连原始 world/experience 一起看得显式配置 recall_types。"
+  },
+  {
+    q:"observation（观察）是怎么产生的？",
+    opts:["用户手动写进去的                ","在原始事实之上做 consolidation 整合归纳而来","随机生成的概念                  ","从互联网抓取的                "],
+    ans:1,
+    ok:"对。观察是 Hindsight 在 raw facts 之上做 consolidation 归纳出的结论，带去重、证据计数与新鲜度信号。",
+    no:"不对。观察由后台整合（consolidation）产生：把多条零散原始事实归纳成一条去重、有证据支撑的结论。"
+  },
+  {
+    q:"修改 recall_types 会影响哪些路径？",
+    opts:["只影响 hindsight_recall 工具      ","只影响每轮自动 recall             ","同时影响自动 recall 与 recall 工具  ","只影响 reflect                   "],
+    ans:2,
+    ok:"对。两条路径读同一个 recall_types 配置（工具没有 per-call 的 types 参数），所以收紧默认会同时收紧自动注入与工具调用。",
+    no:"不对。自动 recall 和 hindsight_recall 工具读同一份 recall_types 配置，改一处两边都变。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q4.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

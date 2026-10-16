@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0010 · Reflect 与 disposition：让记忆会推理</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:30px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;color:var(--ink);}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  .vs{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .vs .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .vs .row:first-of-type{border-top:none;}
+  .vs .k{flex:0 0 150px;font-weight:650;color:var(--accent);font-size:14px;}
+  .vs .before{flex:1;font-size:14.5px;}
+  .vs .after{flex:1;font-size:14.5px;color:var(--ok);}
+  .schema{border:1px solid var(--line);border-radius:12px;padding:6px 18px 14px;margin:14px 0;background:var(--card);}
+  .schema .row{display:flex;gap:12px;padding:8px 0;border-top:1px dashed var(--line);}
+  .schema .row:first-of-type{border-top:none;}
+  .schema .key{flex:0 0 130px;font-weight:650;color:var(--accent);font-size:14px;}
+  .schema .val{flex:1;font-size:14.5px;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0010 · Reflect 与 disposition：让记忆会推理</h1>
+  <div class="meta">Hindsight 从入门到精通 · 第 10 课 · 预计 14 分钟</div>
+
+  <p class="lead">recall 是「查资料」，reflect 是「下判断」。reflect 之所以独特，是因为它把你的记忆和设置的 <b>disposition（性格倾向）</b>结合起来推理。这一课讲清 disposition、bank mission，以及你当前配置里那个<b>空 mission</b> 意味着什么。</p>
+
+  <div class="box q"><b>本节目标：</b>理解 reflect 的推理链路、disposition 三档的作用，并会给 bank 设置 mission。</div>
+
+  <h2>1. reflect 的处理链路</h2>
+  <div class="schema">
+    <div class="row"><span class="key">① 召回</span><span class="val">取相关记忆与观察（跨记忆，不只单条）</span></div>
+    <div class="row"><span class="key">② 应用性格</span><span class="val">叠加 bank 的 disposition（怀疑度/字面度/共情度）</span></div>
+    <div class="row"><span class="key">③ 推理生成</span><span class="val">LLM 基于证据写出结论 —— 这一步用 LLM，最贵</span></div>
+  </div>
+
+  <h2>2. disposition 三档</h2>
+  <div class="vs">
+    <div class="row"><span class="k">skepticism</span><span class="before">怀疑度：低=轻信，高=要求更多证据</span><span class="after">你的当前值：3</span></div>
+    <div class="row"><span class="k">literalism</span><span class="before">字面度：低=爱引申，高=严格按字面</span><span class="after">你的当前值：3</span></div>
+    <div class="row"><span class="k">empathy</span><span class="before">共情度：低=冷冰冰，高=体贴用户处境</span><span class="after">你的当前值：3</span></div>
+  </div>
+  <p>三档取值是 <b>1-5</b>，你目前都是 <code>3</code>（默认中间值）。</p>
+  <div class="box g"><b>怎么用：</b>如果你要它做技术判断，提高 skepticism（逼它要证据、别乱下结论）；如果是给客户做沟通辅助，提高 empathy；如果是严谨的规范/合规场景，提高 literalism 别让它自由发挥。</div>
+
+  <h2>3. bank mission 是什么</h2>
+  <p>mission 是给这个 bank 的<b>角色定位</b>——reflect 推理时的 identity/framing。有两个：</p>
+  <div class="schema">
+    <div class="row"><span class="key">bank_mission</span><span class="val">reflect 的身份/框架（我想让这个 bank 以什么视角推理）</span></div>
+    <div class="row"><span class="key">bank_retain_mission</span><span class="val">retain 的提取导向（引导什么该被抽成事实）</span></div>
+  </div>
+  <div class="box q"><b>你的现状：mission 为空。</b>这意味着 reflect 没有一个明确的视角框架——它只能用默认的通用方式推理。对一个已经积累 4893 条事实的 bank 来说，这是个明显可以补上的提升点。</div>
+  <pre><span class="c"># 读取当前 bank 配置（只读）</span>
+curl http://127.0.0.1:8888/v1/default/banks
+<span class="c"># → mission: ""  disposition: {skepticism:3, literalism:3, empathy:3}</span>
+
+<span class="c"># 设置 reflect mission（走 bank config，不是插件配置）</span>
+PATCH /v1/default/banks/{bank_id}/config
+
+<span class="c"># 注意：插件配置里的 bank_mission / bank_retain_mission 是只读的，
+#      写在 Hermes 配置里不会生效——要改必须走 bank 的 config（控制平面或上面的 PATCH）</span></pre>
+
+  <h2>4. mission 怎么写得有用</h2>
+  <div class="vs">
+    <div class="row"><span class="k">太空</span><span class="before">「帮我记住事情」</span><span class="after">等于没写</span></div>
+    <div class="row"><span class="k">有用</span><span class="before">「这是某开发者的个人技术助手记忆，关注其项目、技术偏好、工作习惯与过往决策」</span><span class="after">给出视角与关注面</span></div>
+    <div class="row"><span class="k">有用</span><span class="before">「推理时优先引用明确的用户偏好与已定决策，避免臆测」</span><span class="after">约束推理方式</span></div>
+  </div>
+
+  <h2>5. reflect 的使用时机</h2>
+  <div class="schema">
+    <div class="row"><span class="key">适合</span><span class="val">「我在这个项目上形成了哪些稳定做法？」「我的偏好是怎么演变的？」</span></div>
+    <div class="row"><span class="key">不适合</span><span class="val">查一条具体事实（用 recall，快得多也便宜得多）</span></div>
+  </div>
+  <div class="box"><b>成本提醒：</b>reflect 每次都要 LLM 生成，比 recall 贵得多。别拿它当搜索引擎用——它是你偶尔想「让记忆帮你总结/判断」时的工具。</div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0011）收官实战</b>：把你学到的一切组装成一套属于你自己的记忆体系，含配置清单与排查手册。有疑问先消化。
+  </div>
+
+  <footer>
+    课程 0010 · Hindsight 深入 · 精通篇
+    · reflect 与 disposition：<a href="https://hindsight.vectorize.io/developer/api/main-methods" target="_blank" rel="noopener">Hindsight · Main Methods</a>
+  </footer>
+</div>
+
+<script>
+const Q10 = [
+  {
+    q:"reflect 与 recall 最本质的区别是？",
+    opts:["reflect 更快更省                ","reflect 会用 LLM 推理并应用 disposition 生成结论","reflect 只能查一个 bank            ","两者其实完全一样                "],
+    ans:1,
+    ok:"对。reflect 召回证据后经 LLM 推理，并叠加 bank 的 disposition（怀疑/字面/共情）产出结论；recall 只是检索排序。",
+    no:"不对。recall 是检索（快、便宜、给清单），reflect 是推理（用 LLM、应用 disposition、给结论）。"
+  },
+  {
+    q:"disposition 的 skepticism 调高会怎样？",
+    opts:["让它更轻信记忆                ","让它要求更多证据、更审慎地下结论     ","让它回答更简短                  ","让它停止使用观测          "],
+    ans:1,
+    ok:"对。skepticism 是怀疑度，调高会让推理更审慎、更要求证据支撑，适合技术判断类场景。",
+    no:"不对。skepticism 调高是提高怀疑度——更审慎、更要求证据；调低才是更轻信。"
+  },
+  {
+    q:"想给 bank 设置 reflect mission，正确的做法是？",
+    opts:["写在 Hermes config.yaml 的 memory.hindsight 里","走 bank 的 config（控制平面或 PATCH banks/{id}/config）","写在课程 HTML 里              ","改 package.json               "],
+    ans:1,
+    ok:"对。插件配置里的 bank_mission 是只读、不生效的；要设 bank 的 reflect mission 必须走该 bank 的 config（控制平面或 PATCH /v1/default/banks/{bank_id}/config）。",
+    no:"不对。改成走 bank 自身的 config 接口；Hermes 插件配置里的 bank_mission/bank_retain_mission 只读、写了不生效。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q10.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>
