@@ -10,6 +10,10 @@
     {"n":"0004","file":"0004-four-gates.html","title":"四道验收门：怎么证明它真的在记东西"},
     {"n":"0005","file":"0005-layers-and-empty.html","title":"L0 到 L3：为什么什么都没抽出来"},
     {"n":"0006","file":"0006-retrieval-fts-vs-embedding.html","title":"检索原理：关键词能搜到什么，搜不到什么"},
-    {"n":"0007","file":"0007-wire-into-hermes.html","title":"接进 Hermes：改哪一行，怎么证明它认了"}
+    {"n":"0007","file":"0007-wire-into-hermes.html","title":"接进 Hermes：改哪一行，怎么证明它认了"},
+    {"n":"0008","file":"0008-team-stack-anatomy.html","title":"三件套解剖：core / hub / proxy 各管什么"},
+    {"n":"0009","file":"0009-proxy-eight-stages.html","title":"Proxy 的八个阶段：记忆是怎么被塞进 prompt 的"},
+    {"n":"0010","file":"0010-diagnostic-tree.html","title":"诊断树：从症状走到根因"},
+    {"n":"0011","file":"0011-loadout-capstone.html","title":"收官：给你自己配一套 memory loadout"}
   ]
 }

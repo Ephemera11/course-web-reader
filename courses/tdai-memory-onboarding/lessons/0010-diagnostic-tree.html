@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0010 · 诊断树：从症状走到根因</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:29px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  h3{font-size:15.5px;margin:20px 0 6px;color:var(--accent);}
+  p{margin:10px 0;}
+  .lead{font-size:17px;}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  .box.b{background:var(--bad-bg);border-color:var(--bad-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px;}
+  th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top;}
+  th{color:var(--sub);font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;}
+  .br{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;
+    padding:14px 18px;margin:20px 0;background:var(--card);}
+  .br h3{margin-top:0;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;white-space:pre;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0010 · 诊断树：从症状走到根因</h1>
+  <div class="meta">TencentDB Agent Memory 入门 · 第 10 课 · 预计 16 分钟</div>
+
+  <p class="lead">前九课给了你知识和一把坑。这一课把它变成<b>可执行的判断顺序</b>——从你观察到的症状出发，每一步只问一个问题、只跑一条命令，走到唯一根因。</p>
+
+  <div class="box q"><b>本节目标：</b>拿到任意一个「它不工作」的描述，能沿树走到根因，而不是重装一遍碰运气。</div>
+
+  <h2>总入口：先分三个岔</h2>
+  <pre>症状是什么？
+├─ 服务起不来 / 端口报错 ─────────► 分支 A
+├─ 服务活了，但对话里像没记忆 ───► 分支 B
+└─ 记忆确实在，但用起来不对 ─────► 分支 C</pre>
+
+  <div class="br">
+    <h3>分支 A · gateway 起不来</h3>
+    <p><b>先跑：</b></p>
+    <pre>netstat -ano | grep <span class="s">":8420"</span> | grep LISTENING</pre>
+    <table>
+      <tr><th>看到什么</th><th>根因</th><th>解药</th></tr>
+      <tr><td><code>EADDRINUSE</code>，且有 PID 在 LISTENING</td><td>残留进程占着端口（tsx 是 shell → cli → node 三层链，杀一层不等于清干净）</td><td>按 PID 确认是自己的进程再逐个杀，别按进程名批量杀 node</td></tr>
+      <tr><td><code>Error: The service was stopped</code>（esbuild）</td><td>用了 <code>node --import tsx</code></td><td>改用 <code>node ./node_modules/tsx/dist/cli.mjs src/gateway/server.ts</code></td></tr>
+      <tr><td>`Cannot find module '...integrations/factory.js'` 之类</td><td>私有子模块缺失，standalone 模式回退</td><td><b>这是正常噪声</b>，别管它，继续看 /health</td></tr>
+      <tr><td><code>node</code> 版本报错</td><td>低于 22.16</td><td>升 node（原生模块与 jieba 需要）</td></tr>
+    </table>
+  </div>
+
+  <div class="br">
+    <h3>分支 B · 服务活了，但像没记忆</h3>
+    <p><b>按顺序跑这三条</b>，每条都能把范围砍掉一半：</p>
+    <pre><span class="c"># ① 活着吗</span>
+curl -s localhost:8420/health
+<span class="c"># ② 写进去了吗</span>
+curl -s -XPOST localhost:8420/capture -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"user_content":"诊断探针","assistant_content":"ok","session_key":"diag"}'</span>
+<span class="c"># ③ 能搜回来吗（唯一不会骗人的门）</span>
+curl -s -XPOST localhost:8420/search/conversations -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"query":"诊断探针","limit":3}'</span></pre>
+    <table>
+      <tr><th>结果</th><th>根因</th><th>下一步</th></tr>
+      <tr><td>① 就失败</td><td>服务没起来</td><td>回分支 A</td></tr>
+      <tr><td>② <code>l0_recorded:0</code></td><td>写入链路断（极少见）</td><td>看 gateway 日志里的 L0 写入记录</td></tr>
+      <tr><td>② OK 但 ③ <code>total:0</code></td><td>检索没命中：查询词与内容无共同分词结果，或写的是另一个数据目录</td><td>换内容里出现过的原词再搜一次；核对启动日志里的 <code>dataDir</code></td></tr>
+      <tr><td>③ 有结果，但 <code>/recall</code> 空</td><td><b>L1 没抽出来</b>（L0 与 L1 是两件事）</td><td>进分支 B2</td></tr>
+    </table>
+
+    <h3>分支 B2 · L0 有、L1 恒空</h3>
+    <table>
+      <tr><th>检查</th><th>根因</th><th>解药</th></tr>
+      <tr><td><code>TDAI_LLM_API_KEY</code> 是否为空</td><td>没配模型，L1 抽取没法做</td><td>配 <code>TDAI_LLM_API_KEY</code> / <code>_BASE_URL</code> / <code>_MODEL</code></td></tr>
+      <tr><td><code>MEMORY_PROMPT_MODE</code> 是 <code>code</code> 还是 <code>chat</code></td><td>模式与内容不匹配（用 code 模式聊日常 → 抽出 0 条）</td><td>闲聊改 <code>chat</code>，工程协作保持 <code>code</code></td></tr>
+      <tr><td>对话里有没有可抽的东西</td><td>纯寒暄 / 纯工具调用</td><td>换成含事实、约束、决策的对话再试</td></tr>
+      <tr><td>是否重复说同一件事</td><td>去重把新条目合并了</td><td>这是设计不是 bug；换新事实再试</td></tr>
+    </table>
+    <div class="box b"><b>这条分支上最大的陷阱：</b>别用 <code>tasksCompleted</code> 判断。<code>/health</code> 里它可能一路涨到 5、<code>tasksFailed</code> 是 0，而 <code>l1_records</code> 仍是 0。只认 <code>/search/memories</code> 有结果。</div>
+  </div>
+
+  <div class="br">
+    <h3>分支 C · 记忆在，但用起来不对</h3>
+    <table>
+      <tr><th>症状</th><th>根因</th><th>解药</th></tr>
+      <tr><td>同义词搜不到（说「情报系统」，记的是「情报平台」）</td><td>没配 embedding，只走 FTS5 + jieba 关键词</td><td>配齐 embedding 四元组；用 <code>/health</code> 的 <code>embeddingService</code> 确认变 <code>true</code></td></tr>
+      <tr><td>配了 embedding 但还是搜不到同义词</td><td>四元组缺一项 → 静默降级</td><td>检查 apiKey / baseUrl / model / dimensions 是否都在</td></tr>
+      <tr><td>分数很高却召回不相关</td><td>拿 BM25 分数当绝对阈值卡</td><td>只用它排序；要卡阈值先在自己库上采样看分布</td></tr>
+      <tr><td>刚说完立刻搜不到</td><td>回流是异步的（第 7 阶段在转发之后）</td><td>等一两秒或触发一次 capture 后再搜</td></tr>
+      <tr><td>停进程后读库能读，跑着时读到 0 行</td><td>WAL 未 checkpoint</td><td>这不是故障；验收只信 API</td></tr>
+    </table>
+  </div>
+
+  <div class="br">
+    <h3>分支 D · Hermes 侧完全没反应</h3>
+    <p>这是最容易误判的一支，因为它<b>三种失败长得一模一样</b>：对话正常，只是记忆没进来。</p>
+    <pre><span class="c"># 唯一的判据：Hermes 认不认这个 provider</span>
+cd <span class="s">"$HERMES_HOME/hermes-agent"</span> &amp;&amp; venv/Scripts/python.exe -c \
+  <span class="s">"from plugins.memory import discover_memory_providers as d; [print(n,a) for n,_,a in d()]"</span></pre>
+    <table>
+      <tr><th>输出</th><th>根因</th><th>解药</th></tr>
+      <tr><td>列表里没有 <code>memory_tencentdb</code></td><td>目录名不是下划线 / 放错 HERMES_HOME / 没放 <code>__init__.py</code></td><td>目录名必须等于 plugin.yaml 的 <code>name</code>；确认用的是 <code>$HERMES_HOME</code> 而不是 <code>~/.hermes</code></td></tr>
+      <tr><td>出现但 <code>False</code></td><td>依赖不全或 gateway 不可达</td><td>看 <code>$HERMES_HOME/logs/memory_tencentdb/gateway.stderr.log</code></td></tr>
+      <tr><td>出现且 <code>True</code>，但还是没记忆</td><td><code>config.yaml</code> 里的 <code>memory.provider</code> 没切过去</td><td>加 <code>memory.provider: memory_tencentdb</code> 后重启 Hermes</td></tr>
+      <tr><td>工具列表里没有 memory 搜索工具</td><td>gateway 不可达且未设 <code>MEMORY_TENCENTDB_GATEWAY_CMD</code> / <code>_PORT</code> → tools 返回空</td><td>设上其中一个，让工具乐观注册</td></tr>
+    </table>
+  </div>
+
+  <div class="br">
+    <h3>分支 E · 团队版（8096 / 8125）</h3>
+    <table>
+      <tr><th>症状</th><th>根因</th><th>解药</th></tr>
+      <tr><td>面板 8125 打不开 / 提示 Panel API 未启动</td><td>hub 容器不 healthy</td><td><code>docker logs tdai-memory-hub</code>，多半是 <code>REMOTE_INSTANCE_URL</code> 或 <code>LLM_BASE_URL</code> 配错</td></tr>
+      <tr><td>业务用户看不到「新建团队」</td><td>权限设计：建 Team 只对 admin 开放</td><td>让 admin 建好并把你加入；或用自己的 key 调 <code>team/create</code></td></tr>
+      <tr><td>API 建了用户，面板里看不到</td><td><code>user/create</code> 只建账号<b>不入队</b></td><td>再调一次 <code>team-member/add</code></td></tr>
+      <tr><td>改了 proxy 的 config.yaml，重启就没了</td><td><code>start-proxy.sh</code> 每次覆写生成的配置</td><td>用 <code>PROXY_CONFIG_DIR</code> 指向自己维护的目录</td></tr>
+      <tr><td>Claude Code 不弹 team/agent/task 表单</td><td><code>PROXY_ENABLE_SESSION_INIT=1</code> 没开</td><td>用 <code>PROXY_FULL_STACK=1 ./start-proxy.sh</code> 重启</td></tr>
+      <tr><td>上游 400 <code>unknown tool ""</code></td><td>客户端 preset 没挂表单用的 UI tool，proxy 塞的 fake tool_call 被拒</td><td>开 headless bypass：<code>body.tools</code> 非空但无该 tool 时直接透传</td></tr>
+      <tr><td>上游 400 <code>reasoning_content must be passed back</code></td><td>fake 消息没带该字段，或序列化时被抹掉</td><td>塞非空占位串；用 <code>PROXY_DEBUG_DUMP_INBOUND</code> / <code>DUMP_BODY</code> 对比进出站</td></tr>
+    </table>
+  </div>
+
+  <h2>一张收敛表：症状 → 一句话根因</h2>
+  <table>
+    <tr><th>症状</th><th>根因（一句话）</th></tr>
+    <tr><td>npm install 失败</td><td>你在默认分支上，那里没有 package.json</td></tr>
+    <tr><td>gateway 崩在 esbuild</td><td>用了 <code>--import tsx</code> 而不是 tsx CLI</td></tr>
+    <tr><td>数据找不到</td><td><code>TDAI_DATA_DIR</code> 写成了 MSYS 路径，跑到盘根去了</td></tr>
+    <tr><td>端口被占但进程查不到</td><td>tsx 的三层进程链没清干净</td></tr>
+    <tr><td>库里读到 0 行</td><td>进程还活着，WAL 没 checkpoint</td></tr>
+    <tr><td>tasksCompleted 涨了但没记忆</td><td>LLM 抽取失败被吞，任务仍记完成</td></tr>
+    <tr><td>同义词搜不到</td><td>只有 FTS + jieba，没上 embedding</td></tr>
+    <tr><td>配了 embedding 却没用</td><td>四元组缺一项，静默降级</td></tr>
+    <tr><td>Hermes 静默无记忆</td><td>四个 header 缺一 → session bypass</td></tr>
+    <tr><td>provider 装了不生效</td><td>目录名不是 <code>memory_tencentdb</code>，或放错了 HERMES_HOME</td></tr>
+  </table>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0011）收官</b>——四类记忆资产、可见性模型、以及「给一个人的公司组一支 agent 小队」的 loadout 设计。有疑问随时问我。
+  </div>
+
+  <footer>
+    课程 0010 · 诊断篇
+    · 一手材料：<code>INSTALL_CN.md</code> FAQ、<code>agents/adapter-agent-development.md</code>（坑 A–H）、<code>l1-extractor.ts:178-181</code>，以及本机实测
+  </footer>
+</div>
+
+<script>
+const Q10 = [
+  {
+    q:"gateway 起来了、capture 返回 l0_recorded:2，但 search/conversations 是 total:0。先查什么？",
+    opts:["换用内容里出现过的原词再搜，并核对 dataDir",
+          "立即重装 npm 包，依赖可能装坏了      ",
+          "把 gateway 换到别的端口重新启动一次  ",
+          "清空数据库，可能是库文件已经损坏    "],
+    ans:0,
+    ok:"对。写入成功说明链路是通的，问题在检索没命中：要么查询词与内容没有共同分词结果，要么写进了另一个数据目录。换原词 + 核对启动日志的 dataDir 最快定位。",
+    no:"不对。capture 已经返回 2 条，说明存储正常；问题在「搜得到搜不到」这一环，不在安装或端口。"
+  },
+  {
+    q:"Hermes 装了 provider，discover 输出里也有，但仍是 False。去哪看原因？",
+    opts:["$HERMES_HOME/logs/memory_tencentdb/gateway.stderr.log",
+          "浏览器控制台，因为 provider 是前端组件      ",
+          "npm 的 install 日志，能看出依赖是否缺失      ",
+          "config.yaml 里的 plugins.enabled 列表        "],
+    ans:0,
+    ok:"对。False 通常意味着依赖不全或 gateway 不可达，provider 会把 sidecar 的 stderr 写到那个日志目录（可用 MEMORY_TENCENTDB_LOG_DIR 覆盖）。",
+    no:"不对。provider 是 Python 侧进程 + Node sidecar，故障信息在它的 gateway stderr 日志里，与前端和 npm 日志无关。"
+  },
+  {
+    q:"面板里看不到新建的团队和用户，但你用 API 建过用户。最可能的原因？",
+    opts:["user/create 只建账号不入队，还要调 team-member/add",
+          "API 建的用户默认被禁用，需要管理员手动启用        ",
+          "面板缓存没刷新，重启容器就会自动出现              ",
+          "业务用户必须重新登录一次才会显示在成员列表里      "],
+    ans:0,
+    ok:"对。这不是一个接口能完成的事：user/create 只建账号，把它加进团队要再调 team-member/add，两步都成功才等于面板上的「新建用户并加入团队」。",
+    no:"不对。问题在调用次数而不是缓存或启用状态：创建账号与加入团队是两个独立动作。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q10.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

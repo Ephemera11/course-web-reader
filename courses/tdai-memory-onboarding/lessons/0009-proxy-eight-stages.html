@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0009 · Proxy 的八个阶段：记忆是怎么被塞进 prompt 的</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:29px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  .box.b{background:var(--bad-bg);border-color:var(--bad-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;}
+  th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top;}
+  th{color:var(--sub);font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;}
+  .stage{border:1px solid var(--line);border-radius:10px;padding:10px 16px;margin:8px 0;background:var(--card);}
+  .stage b{color:var(--accent);}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;white-space:pre;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0009 · Proxy 的八个阶段：记忆是怎么被塞进 prompt 的</h1>
+  <div class="meta">TencentDB Agent Memory 入门 · 第 9 课 · 预计 15 分钟</div>
+
+  <p class="lead">这一课讲这套设计里最巧的一层：<b>它靠"假装成 LLM 的 API"来给 agent 加记忆</b>。不改客户端一行代码、不改协议，只在转发的一进一出之间动手。理解这八个阶段，你就知道为什么有些客户端"什么都不用配"、而 Hermes 必须手填四个 header。</p>
+
+  <div class="box q"><b>本节目标：</b>能说清一次请求经过哪些阶段、哪些层是"注入"哪些层是"工具查询"，以及无表单客户端为什么会静默失效。</div>
+
+  <h2>1. 透明代理是什么意思</h2>
+  <p>proxy 原样转发 OpenAI <code>/v1/chat/completions</code> 和 Anthropic <code>/v1/messages</code>，协议一个字节都不改。对客户端和上游来说它是透明的——变化只发生在中途。</p>
+  <div class="box g"><b>这就是"零代码接入"的真相：</b>把 agent 的 base URL 指到 proxy 就完事，不需要插件、hook 或 MCP server。代价是——所有能力都只能通过"改 prompt / 改返回"来实现，不能要求客户端配合。</div>
+
+  <h2>2. 八个阶段</h2>
+  <div class="stage"><b>1 auth</b> — 校验 <code>x-tdai-user-key</code>，解析出 <code>user_id</code> 当全链路身份</div>
+  <div class="stage"><b>2 systemUser</b> — 命中内部服务账号就短路，只做透明转发 + 计费</div>
+  <div class="stage"><b>3 sessionInit</b> — 首次对话弹表单：team → agent → task；或从请求头预选</div>
+  <div class="stage"><b>4 injection</b> — 把 skill / knowledge / memory 注入 system prompt</div>
+  <div class="stage"><b>5 rateLimit</b> — 按 <code>spaceId × 最终模型</code> 做 60 秒滑动窗口限流</div>
+  <div class="stage"><b>6 forward</b> — 转发到上游 LLM</div>
+  <div class="stage"><b>7 extract</b> — 一轮结束后异步回流：对话切片发给 core，同时写 L0</div>
+  <div class="stage"><b>8 report</b> — ClickHouse / Langfuse / Opik / 计费上报，任一路失败不影响业务</div>
+  <div class="box q"><b>看第 3 和第 7 的位置：</b>初始化在<b>转发之前</b>，回流在<b>转发之后</b>。所以 memory 的写入天然是"异步、不阻塞回答"的——这也解释了为什么你在对话里感觉不到延迟，但也意味着"刚说完立刻去搜"可能还搜不到。</div>
+
+  <h2>3. 四层记忆，两种接法</h2>
+  <p>这是整个设计里最值得学的一个决策：<b>不是所有记忆都塞进 prompt</b>。</p>
+  <table>
+    <tr><th>层</th><th>是什么</th><th>怎么进模型</th></tr>
+    <tr><td><b>L0</b></td><td>短期对话记忆</td><td>每轮由 proxy 主动写回 core（<b>不注入</b>）</td></tr>
+    <tr><td><b>L1</b></td><td>会话级关键记忆</td><td>通过 <code>&lt;tdai_memory_tools&gt;</code> <b>让模型自己按需召回</b></td></tr>
+    <tr><td><b>L2</b></td><td>Agent Profile</td><td><b>直接注入</b> system prompt</td></tr>
+    <tr><td><b>L3</b></td><td>Team / Global 记忆</td><td><b>直接注入</b> system prompt</td></tr>
+  </table>
+  <div class="box g"><b>为什么这样分：</b>L2/L3 是"总是需要"的背景知识，量小、稳定，直接注入。L0/L1 量可能很大且每题不同——如果每轮都塞进去，<b>上游的 KV cache 前缀就变了</b>，缓存全失效，成本和延迟都会飙。所以改成"给工具让模型自己查"。<br><br>这是 prompt 工程里一个很实用的原则：<b>按"是否每次都需要"分层，而不是按"重不重要"分层。</b></div>
+
+  <h2>4. 四个注入块长什么样</h2>
+  <table>
+    <tr><th>块</th><th>内容</th></tr>
+    <tr><td><code>&lt;cloud_skills&gt;</code></td><td>从 RAG 检索到的相关 Skill 摘要</td></tr>
+    <tr><td><code>&lt;skill_tools&gt;</code></td><td>教模型怎么 curl 调用 Skill（写权限由 <code>skillRuntime.allowLlmWrite</code> 控）</td></tr>
+    <tr><td><code>&lt;knowledge_tools&gt;</code></td><td>Wiki / CodeGraph 的两步自发现工具</td></tr>
+    <tr><td><code>&lt;session_context&gt;</code></td><td>session init 后每轮追加的 agent / task 信息</td></tr>
+  </table>
+  <p>这些都是 XML 结构的文本块，塞进 <code>messages[0].content</code>（system message）。所以模型"看到"的其实是普通文本，不是某种特殊协议——这也是为什么用错客户端格式时它们会失效。</p>
+
+  <h2>5. 表单 vs Header 预选：Hermes 为什么必须手填四个 header</h2>
+  <table>
+    <tr><th>客户端类型</th><th>sessionInit 方式</th><th>缺信息时</th></tr>
+    <tr><td>有 UI 工具能力的（Claude Code / CodeBuddy / Codex…）</td><td>proxy 返回一个「表单工具调用」，客户端弹选项</td><td>弹表单让用户选</td></tr>
+    <tr><td><b>Hermes / OpenClaw</b></td><td><b>只能靠 header 预选</b></td><td><b>静默 bypass：不注入、不报错</b></td></tr>
+  </table>
+  <p>Hermes 无法响应 proxy 返回的 function_call，所以只能这四条全带：</p>
+  <pre>x-team-id:         &lt;team_id&gt;
+x-agent-id:        &lt;agent_id&gt;
+x-task-id:         &lt;task_id&gt;          <span class="c"># 当前版本必填</span>
+x-conversation-id: &lt;你自己生成&gt;      <span class="c"># 每个新会话要换</span></pre>
+  <div class="box b"><b>这就是"配了却不生效"的机制层原因：</b>缺任意一个 header，proxy 会退回表单路径；Hermes 响应不了表单，于是 bypass。整个过程 HTTP 200、对话正常，只是记忆注入那部分被跳过了。<b>没有报错，是最难查的那类故障。</b></div>
+  <p>两个补丁手段：</p>
+  <table>
+    <tr><td><code>sessionInit.defaultTaskId: "no-task"</code></td><td>不想绑 Task 时，让 proxy 在任务列表最前面插一条虚拟条目兜底（这个 ID 不需要真实存在）</td></tr>
+    <tr><td><code>headerAutoSelect.onMismatch</code></td><td>header 与真实数据不匹配时的行为（<code>form</code> 或跳过）</td></tr>
+  </table>
+
+  <h2>6. 排查代理问题时用这两个开关</h2>
+  <pre>PROXY_DEBUG_DUMP_INBOUND=1   <span class="c"># 打印进站 body</span>
+PROXY_DEBUG_DUMP_BODY=1      <span class="c"># 打印出站 body</span></pre>
+  <p>对比进出两个 body，就能看出注入块到底有没有被塞进去、客户端的特色字段（比如 <code>reasoning_content</code>）有没有在序列化时被抹掉。这是排查「注入似乎没生效」最直接的手段——比猜配置快得多。</p>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0010）诊断树</b>——把前面所有坑按「症状」串成判断流程：起不来、起来没记忆、有记忆搜不到、Hermes 没反应，各有各的分支。有疑问随时问我。
+  </div>
+
+  <footer>
+    课程 0009 · 注入链路篇
+    · 一手材料：<code>MemoryProxy/README_CN.md</code>（八阶段与四层注入表）、<code>agents/README.md</code>（协议路由与 header 预选）、<code>agents/adapter-agent-development.md</code>（八类坑）、<code>INSTALL_CN.md</code>（defaultTaskId 与已知限制）
+  </footer>
+</div>
+
+<script>
+const Q9 = [
+  {
+    q:"为什么 L0 与 L1 不直接注入 system prompt，而改成工具让模型自己查？",
+    opts:["量大会改动 KV cache 前缀，导致缓存失效成本升高",
+          "这两层数据还没加密，直接注入会违反权限模型    ",
+          "工具调用比文本注入更准确，模型更愿意用它      ",
+          "为了减少 prompt 长度以绕过上游的上下文限制    "],
+    ans:0,
+    ok:"对。L2/L3 量小稳定，直接注入；L0/L1 每次不同且可能很大，塞进去会让上游缓存前缀失效，成本与延迟都涨。",
+    no:"不对。核心是缓存经济学：前缀一变，KV cache 全失效。这是「按是否每次都需要分层」的典型应用。"
+  },
+  {
+    q:"Hermes 接了 proxy 之后对话正常，但记忆注入没生效。最可能的机制原因？",
+    opts:["四个 header 缺了任意一个，退回表单路径后 bypass",
+          "Hermes 不支持 OpenAI 协议，proxy 无法识别请求  ",
+          "proxy 的注入块只能注入 Anthropic 协议的客户端  ",
+          "Hermes 的 system prompt 格式与注入块不兼容    "],
+    ans:0,
+    ok:"对。Hermes 无法响应 proxy 返回的表单工具调用，四个 header 缺一就退回表单路径 → 响应不了 → 静默 bypass，HTTP 仍然 200。",
+    no:"不对。协议与注入块都没问题，问题在会话初始化这一步没完成，于是注入被整体跳过。"
+  },
+  {
+    q:"想确认注入块到底有没有被塞进请求体，最直接的做法是？",
+    opts:["开 PROXY_DEBUG_DUMP_INBOUND 与 DUMP_BODY 对比",
+          "把上游模型换成更强的模型再看回答质量      ",
+          "把 proxy 日志级别调到 ERROR 以减少干扰    ",
+          "重启客户端并清空会话历史后重新对话一次    "],
+    ans:0,
+    ok:"对。对比进出站 body 能直接看到注入块在不在、客户端特色字段有没有被序列化抹掉，比猜配置快得多。",
+    no:"不对。这两个 dump 开关才是观测手段；换模型、改日志级别、重启都无法回答「块在不在」这个问题。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q9.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>
