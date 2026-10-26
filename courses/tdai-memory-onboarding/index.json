@@ -1,0 +1,15 @@
+{
+  "id": "tdai-memory-onboarding",
+  "title": "TencentDB Agent Memory 入门",
+  "kicker": "COURSE",
+  "cover": "forest",
+  "lessons": [
+    {"n":"0001","file":"0001-three-paths.html","title":"先判定形态：一个仓库里装了两套产品"},
+    {"n":"0002","file":"0002-install-npm-not-clone.html","title":"装：用 npm，不是 clone"},
+    {"n":"0003","file":"0003-start-gateway.html","title":"起 gateway：三种起法与三个坑"},
+    {"n":"0004","file":"0004-four-gates.html","title":"四道验收门：怎么证明它真的在记东西"},
+    {"n":"0005","file":"0005-layers-and-empty.html","title":"L0 到 L3：为什么什么都没抽出来"},
+    {"n":"0006","file":"0006-retrieval-fts-vs-embedding.html","title":"检索原理：关键词能搜到什么，搜不到什么"},
+    {"n":"0007","file":"0007-wire-into-hermes.html","title":"接进 Hermes：改哪一行，怎么证明它认了"}
+  ]
+}

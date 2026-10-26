@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0001 · 先判定形态：一个仓库里装了两套产品</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:29px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  h3{font-size:16px;margin:22px 0 6px;color:var(--accent);}
+  p{margin:10px 0;}
+  .lead{font-size:17px;}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  .box.b{background:var(--bad-bg);border-color:var(--bad-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px;}
+  th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top;}
+  th{color:var(--sub);font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;white-space:pre;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0001 · 先判定形态：一个仓库里装了两套产品</h1>
+  <div class="meta">TencentDB Agent Memory 入门 · 第 1 课 · 预计 12 分钟</div>
+
+  <p class="lead">学这门课最省时间的一步，不是记住命令，而是<b>在输入第一条命令之前判断自己走的是哪条路</b>。因为 <code>TencentCloud/TencentDB-Agent-Memory</code> 这一个仓库里，装了两套内核完全不同、命令完全不通用的产品。</p>
+
+  <div class="box q"><b>本节目标：</b>看到任何一篇 TDAI 教程，30 秒内判断它讲的是哪条路；并知道自己这台机器只能走哪条。</div>
+
+  <h2>1. 两条代码树</h2>
+  <p>项目把「团队版服务端」放在默认分支，把「本地插件版」放在 <code>main</code>。你用 <code>git clone</code> 不加分支参数时，拿到的是<b>默认分支</b>。</p>
+
+  <table>
+    <tr><th></th><th>默认分支 feat/server_team</th><th>分支 main</th></tr>
+    <tr><td>是什么</td><td>团队版服务端：MemoryCore / MemoryProxy / MemoryPanel / MemoryKnowledge + deploy</td><td>本地插件版：openclaw 插件 + hermes provider</td></tr>
+    <tr><td>体量</td><td>约 1259 个文件</td><td>约 173 个文件</td></tr>
+    <tr><td>根目录有 package.json</td><td><b>没有</b>（请求返回 404）</td><td>有</td></tr>
+    <tr><td>装法</td><td>Docker 起三个镜像</td><td>npm 装包</td></tr>
+    <tr><td>默认端口</td><td>8420 / 8125 / 8424 / 8096</td><td>gateway 8420</td></tr>
+  </table>
+
+  <p>自己验证这件事只需要两条命令（不需要 clone 整个仓库）：</p>
+  <pre><span class="c"># 默认分支根目录没有 package.json</span>
+curl -s -o /dev/null -w <span class="s">"%{http_code}\n"</span> \
+  https://raw.githubusercontent.com/TencentCloud/TencentDB-Agent-Memory/feat/server_team/package.json
+<span class="c"># → 404</span>
+
+<span class="c"># main 分支有</span>
+curl -s -o /dev/null -w <span class="s">"%{http_code}\n"</span> \
+  https://raw.githubusercontent.com/TencentCloud/TencentDB-Agent-Memory/main/package.json
+<span class="c"># → 200</span></pre>
+
+  <div class="box b"><b>第一个必踩的坑：</b>网上大量教程写「clone 仓库，然后 <code>npm install</code>」。你照做会失败——因为 clone 下来的是默认分支，那里根本没有 <code>package.json</code>。想装本地插件要<b>直接用 npm 装包</b>，不要 clone。</div>
+
+  <h2>2. 四套版本号，没有一套能对上</h2>
+  <p>这是最迷惑人的地方。同一个项目，四个地方报四个不同的版本：</p>
+  <table>
+    <tr><th>你看到的</th><th>它是什么</th></tr>
+    <tr><td>1.0.3</td><td>npm 上真正能装的那个包（2026-10 实测）</td></tr>
+    <tr><td>0.3.6</td><td>main 分支 package.json 里写的（落后于已发布版本）</td></tr>
+    <tr><td>v2.0.3-beta.1</td><td>GitHub Release，对应服务端团队版</td></tr>
+    <tr><td>0.1.0</td><td>gateway 运行时在 /health 里自报的内部版本</td></tr>
+  </table>
+  <div class="box g"><b>记住一句话就够：</b>要装包就认 npm registry 的版本，要看服务端功能就认 GitHub Release，别拿 Release 号去 npm 找包，也别拿 npm 版本号去对 Docker 镜像 tag。</div>
+
+  <h2>3. 三条路，怎么选</h2>
+  <table>
+    <tr><th>我想做的事</th><th>走哪条</th><th>第一条命令</th></tr>
+    <tr><td>让我机器上的 Hermes 有长期记忆</td><td>A · 本地插件</td><td><code>npm install @tencentdb-agent-memory/memory-tencentdb</code></td></tr>
+    <tr><td>给团队建共享记忆中心（面板 / Skill / Wiki / CodeGraph）</td><td>B · Docker 三件套</td><td><code>cd deploy/global-images &amp;&amp; ./start-all.sh</code></td></tr>
+    <tr><td>我用 OpenClaw 不是 Hermes</td><td>C · OpenClaw 插件</td><td><code>openclaw plugins install @tencentdb-agent-memory/memory-tencentdb</code></td></tr>
+  </table>
+
+  <h2>4. 你这台机器只能走哪条</h2>
+  <p>选路不是看兴趣，是看网络和已装软件。实测结论：</p>
+  <table>
+    <tr><th>检查项</th><th>结果</th><th>影响</th></tr>
+    <tr><td><code>openclaw --version</code></td><td>未安装</td><td>路 C 不可跑</td></tr>
+    <tr><td><code>docker manifest inspect</code> 镜像</td><td>registry-1.docker.io 超时；registry mirror 列表为空</td><td>路 B 需先配镜像加速</td></tr>
+    <tr><td><code>npm view</code> 包版本</td><td>1.0.3（走国内镜像，可达）</td><td>路 A 可用</td></tr>
+  </table>
+  <div class="box q"><b>本课程的主线因此固定为路 A。</b>路 B 会讲清判定依据与文档索引，但不会假装跑过——这一点在最后一课会再强调一次，因为「没跑过却写成跑过」是技术资料最常见的失真方式。</div>
+
+  <h2>5. 还有一个隐藏的第四条路</h2>
+  <p>解包 npm 包后会看到两个 provider 目录，很多人只看到第一个：</p>
+  <pre>hermes-plugin/memory/memory_tencentdb/      <span class="c">← v1：自己拉起本地 gateway，L0~L3 存本机</span>
+hermes-plugin/memory/memory_tencentdb_v2/   <span class="c">← v2：连一个已经跑着的 gateway（远端/容器）</span></pre>
+  <p>v1 适合单机自用；v2 适合你已经把团队版三件套跑起来之后，让 Hermes 去连它。本课程主线走 v1，最后一课会提到 v2 的接入差异。</p>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0002）装：用 npm，而不是 clone</b>——为什么 clone 下来会失败、npm 包里到底有什么、装完怎么确认装的是哪个版本。有不懂的随时问我，我是你的老师。
+  </div>
+
+  <footer>
+    课程 0001 · 形态判定篇
+    · 仓库：<a href="https://github.com/TencentCloud/TencentDB-Agent-Memory" target="_blank" rel="noopener">TencentCloud/TencentDB-Agent-Memory</a>
+    · 一手材料：<code>INSTALL_CN.md</code>、<code>package.json</code>、<code>CHANGELOG.md</code>
+    · 速查：<a href="../reference/index.html">一页速查</a>
+  </footer>
+</div>
+
+<script>
+const Q1 = [
+  {
+    q:"你按一篇教程 clone 仓库后在根目录跑 npm install，报找不到 package.json。原因是什么？",
+    opts:["默认分支上没有 package.json，装插件应直接 npm 装包",
+          "npm 版本太旧，需要升级到最新版本再重试      ",
+          "仓库被删了，需要重新找一个新的镜像地址      ",
+          "要先把仓库切换到 main 分支之后才能装        "],
+    ans:0,
+    ok:"对。默认分支是服务端团队版，根目录没有 package.json（请求实测 404）。装本地插件直接用 npm 装包，不要 clone。",
+    no:"不对。根因是分支：默认分支上根本没有 package.json，克隆它是为了看服务端代码，不是用来 npm install 的。"
+  },
+  {
+    q:"有人告诉你「去 npm 找 v2.0.3-beta.1 这个版本装」，这个说法的问题在哪？",
+    opts:["v2.0.3-beta.1 是 GitHub Release 号，不是 npm 包版本号",
+          "v2 版本已经废弃，官方要求全部改用 v1 安装方式      ",
+          "没有问题，npm 上确实有这个名字的包可以直接装      ",
+          "应该先安装 beta 再升级到正式版才是正确顺序        "],
+    ans:0,
+    ok:"对。npm 上的包版本是 1.0.x 这一线，v2.0.3-beta.1 属于服务端团队版的 Release 号，两套编号互不相通。",
+    no:"不对。这两套编号是分开维护的：npm 包认 registry 上的版本，Release 号对应服务端团队版。"
+  },
+  {
+    q:"你的机器上 Docker 无法访问 registry、也没有装 openclaw，那么能真正跑通的是哪条路？",
+    opts:["本地插件路：npm 装包 + 本机起 gateway，无需容器",
+          "团队版三件套：只要把镜像地址换成国内源就能用      ",
+          "OpenClaw 插件路：先装 openclaw 再按文档操作即可   ",
+          "三条路都跑不通，只能等官方提供免依赖的安装包      "],
+    ans:0,
+    ok:"对。npm 走国内镜像是可达的，本地插件路是这台机器上唯一能端到端验证的路径；三件套要先解决镜像可达性。",
+    no:"不对。判断依据是可观测事实：npm 可达、Docker registry 超时、openclaw 未装——所以本地插件路才是当前可跑的那条。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q1.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

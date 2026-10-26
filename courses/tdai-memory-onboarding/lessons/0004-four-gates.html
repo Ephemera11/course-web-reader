@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0004 · 四道验收门：怎么证明它真的在记东西</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:29px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  .box.b{background:var(--bad-bg);border-color:var(--bad-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px;}
+  th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top;}
+  th{color:var(--sub);font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;}
+  .gate{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;
+    padding:14px 18px;margin:18px 0;background:var(--card);}
+  .gate h3{margin:0 0 6px;font-size:16px;color:var(--accent);}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;white-space:pre;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0004 · 四道验收门：怎么证明它真的在记东西</h1>
+  <div class="meta">TencentDB Agent Memory 入门 · 第 4 课 · 预计 18 分钟</div>
+
+  <p class="lead">这一课是整门课的核心。因为「装好了」和「在记东西」是两件完全不同的事，而这套系统<b>在没记东西的时候也会返回成功</b>。四道门是逐层收紧的过滤器，第四道门会告诉你真相。</p>
+
+  <div class="box q"><b>本节目标：</b>能用四条 curl 判断「记了没有 / 能不能搜回 / 抽没抽出记忆」，并知道哪个指标会让你误判。</div>
+
+  <h2>门 1 · /health 返回 200，且三个字段合理</h2>
+  <pre>curl -s http://127.0.0.1:8420/health</pre>
+  <p>实测返回（原样）：</p>
+  <pre>{"status":"ok","version":"0.1.0","uptime":0,
+ "stores":{"vectorStore":true,"embeddingService":false},
+ "services":{"timerScanner":{...},
+             "pipelineWorker":{"tasksConsumed":0,"tasksCompleted":0,"tasksFailed":0,...},
+             "stateBackend":"connected"}}</pre>
+  <div class="gate">
+    <h3>要看的不是 status:ok，而是这三个</h3>
+    <table>
+      <tr><td><code>stores.vectorStore</code></td><td>存储层可用（<code>true</code> 才对）</td></tr>
+      <tr><td><code>stores.embeddingService</code></td><td><code>false</code> = 没配 embedding，只能关键词检索。<b>这不是故障</b></td></tr>
+      <tr><td><code>services.stateBackend</code></td><td><code>connected</code> = 调度器真的在跑，不是空壳</td></tr>
+    </table>
+  </div>
+
+  <h2>门 2 · 写一轮对话，L0 真的落库</h2>
+  <pre>curl -s -X POST http://127.0.0.1:8420/capture \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"user_content":"我在维护招投标情报系统，后端 FastAPI。",
+       "assistant_content":"已记录：后端 FastAPI。",
+       "session_key":"tutorial-01"}'</span></pre>
+  <pre>{"l0_recorded":2,"scheduler_notified":true}</pre>
+  <p><code>l0_recorded:2</code> 是一条用户消息 + 一条助手消息。<code>scheduler_notified:true</code> 表示调度器收到了通知。连发 5 轮，每轮都是这个结果。</p>
+
+  <h2>门 3 · L0 能搜回来（唯一不会骗人的门）</h2>
+  <pre>curl -s -X POST http://127.0.0.1:8420/search/conversations \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"query":"招投标","limit":3}'</span></pre>
+  <pre>Found 2 matching message(s):
+---
+**[user]** Session: tutorial-01 [...] (score: 0.686)
+我在维护 wty-information 招投标情报系统，后端 FastAPI + SQLite，前端 Vue3。</pre>
+  <div class="box g"><b>为什么这门最硬：</b>它不需要你相信任何计数器、不依赖 LLM、不依赖配置对不对——内容从库里搜出来了，就是记下了。<b>只要这道门不过，后面所有门都不用看。</b></div>
+
+  <h2>门 4 · L1 记忆能不能搜到（会安静地失败）</h2>
+  <pre>curl -s -X POST http://127.0.0.1:8420/search/memories \
+  -H <span class="s">"Content-Type: application/json"</span> -d <span class="s">'{"query":"技术栈","limit":3}'</span>
+<span class="c"># → {"results":"No matching memories found.","total":0,"strategy":"fts"}</span>
+
+curl -s -X POST http://127.0.0.1:8420/recall \
+  -H <span class="s">"Content-Type: application/json"</span> \
+  -d <span class="s">'{"query":"我这套系统用什么技术栈","session_key":"tutorial-01"}'</span>
+<span class="c"># → {"context":"","memory_count":0,"code":0,"message":"ok","retryable":false}</span></pre>
+  <div class="box b"><b>这里最容易误判：</b>HTTP 200、<code>code:0</code>、<code>message:"ok"</code>——一切看起来正常，但 <code>context</code> 是空的。<b>「返回 ok」不等于「召回到了东西」</b>。空字符串就是空，它用一种成功的方式表达了失败。</div>
+
+  <h2>哪一个是会让你误判的指标</h2>
+  <p>官方文档说「期望看到 <code>tasksConsumed</code> / <code>tasksCompleted</code> 随对话增长」。我实测：5 轮对话后 <code>tasksConsumed=5, tasksCompleted=5, tasksFailed=0</code> —— 全绿。而库里 <code>l1_records</code> 是 0 行。</p>
+  <pre><span class="c"># 停掉 gateway 之后直接读库</span>
+&gt;&gt;&gt; sqlite3.connect(<span class="s">"C:/tdai/memory-data/vectors.db"</span>).execute(
+...     <span class="s">"select count(*) from l0_conversations"</span>).fetchone()
+(10,)   <span class="c"># 5 轮 × 2 条，L0 全在</span>
+&gt;&gt;&gt; ...execute(<span class="s">"select count(*) from l1_records"</span>).fetchone()
+(0,)    <span class="c"># L1 一条都没有</span></pre>
+  <p>原因写在源码里（<code>src/core/record/l1-extractor.ts:178-181</code>）：LLM 提取抛错时，它返回 <code>{success:false, extractedCount:0}</code>，而<b>任务本身仍被标记为完成</b>。所以「任务完成」只证明调度器跑过，不证明抽出了东西。</p>
+  <div class="box q"><b>替换判据（记这三条，任一条成立才算 L1 通了）：</b><br>① <code>/search/memories</code> 返回 <code>total &gt; 0</code><br>② <code>/recall</code> 返回非空 <code>context</code><br>③ 停进程后读库 <code>l1_records</code> 行数 &gt; 0</div>
+
+  <h2>两个读数据的陷阱</h2>
+  <table>
+    <tr><th>做法</th><th>结果</th><th>正确姿势</th></tr>
+    <tr><td>gateway 活着时用 sqlite3 读 <code>vectors.db</code></td><td>读到 0 行（WAL 未 checkpoint），误判「没落库」</td><td>停进程后读，或只信 API</td></tr>
+    <tr><td>只看 <code>conversations/</code> <code>records/</code> 目录有没有文件</td><td>目录会创建但可能为空，数据在 SQLite 里</td><td>别用文件数量当验收依据</td></tr>
+  </table>
+
+  <h2>持久化验证：重启后还在吗</h2>
+  <p>停掉进程 → 用同一个 <code>TDAI_DATA_DIR</code> 重新起 → 再搜同样的关键词。</p>
+  <p>实测：重启后 <code>tasksConsumed</code> 归 0（计数器重置），但搜索结果仍然是 <code>total=2</code>、score 仍然是 0.709 / 0.686。数据真的在库里的，不是内存态。</p>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0005）L0 到 L3：为什么什么都没抽出来</b>——四种「抽不出记忆」的真实原因，以及 promptMode 这个文档自相矛盾的默认值。有疑问随时问我。
+  </div>
+
+  <footer>
+    课程 0004 · 验收篇
+    · 一手材料：<code>src/gateway/types.ts</code>（各接口字段）、<code>src/core/record/l1-extractor.ts:178-181</code>
+    · 速查：<a href="../reference/index.html">陷阱表</a>
+  </footer>
+</div>
+
+<script>
+const Q4 = [
+  {
+    q:"/recall 返回 code 为 0、message 为 ok，但 context 是空字符串。该怎么理解？",
+    opts:["服务正常但没召回到内容，属于成功返回了空结果",
+          "服务出错了，code 0 表示内部异常需要立即排查  ",
+          "协议不兼容，需要换成 v2 的接口才能拿到内容  ",
+          "只要 code 是 0 就说明召回到了，前端没显示而已"],
+    ans:0,
+    ok:"对。它的错误分类里 0 就是成功；空 context 是「没东西可召回」，通常意味着 L1 还没抽出来。要看 memory_count 是否大于 0。",
+    no:"不对。code 0 是成功码，问题在于空结果被包装成了成功响应——这正是最容易误判的地方。"
+  },
+  {
+    q:"tasksCompleted 涨到 5、tasksFailed 是 0，能据此认定记忆抽取正常工作了吗？",
+    opts:["不能，任务完成只说明调度跑过，不代表抽出了内容",
+          "能，任务完成计数就是官方推荐的成功判据        ",
+          "能，只要 tasksFailed 为 0 就排除所有抽取问题  ",
+          "不能，必须等 tasksDeadLettered 大于 0 才算完  "],
+    ans:0,
+    ok:"对。实测出现过 tasksCompleted=5 而 l1_records=0 的情况：LLM 提取失败被吞掉，任务仍记为完成。要认 /search/memories 有结果或库里 l1_records>0。",
+    no:"不对。这就是本课要纠正的弱判据，实测已证明它会同时给出绿灯与空库。"
+  },
+  {
+    q:"gateway 正在运行，你用 sqlite3 打开 vectors.db 查到 L0 表是 0 行。最合理的解释？",
+    opts:["WAL 尚未 checkpoint，应停进程后再读或只看 API 结果",
+          "数据已被清理策略删除，需要重新 capture 一次        ",
+          "表名写错了，L0 数据实际存在另外一张表里           ",
+          "数据库被锁住了，需要重启 gateway 才能读出数据     "],
+    ans:0,
+    ok:"对。实测同一目录：运行中读到 0 行，停掉进程后同一张表读到 10 行。这是 WAL 模式下的正常现象，不是数据丢失。",
+    no:"不对。这与表名、清理策略无关，是 WAL 未落主库导致的读取假象。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q4.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

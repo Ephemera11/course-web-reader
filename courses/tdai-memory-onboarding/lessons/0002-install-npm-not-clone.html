@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0002 · 装：用 npm，不是 clone</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:29px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  .box.b{background:var(--bad-bg);border-color:var(--bad-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px;}
+  th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top;}
+  th{color:var(--sub);font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;}
+  ul{margin:10px 0;padding-left:22px;}
+  li{margin:6px 0;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;white-space:pre;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0002 · 装：用 npm，不是 clone</h1>
+  <div class="meta">TencentDB Agent Memory 入门 · 第 2 课 · 预计 12 分钟</div>
+
+  <p class="lead">这一课只有一个动作：把包装下来。但装之前的<b>三条检查</b>和装之后的<b>一次确认</b>，决定了你后面半小时是在调试还是在干活。</p>
+
+  <div class="box q"><b>本节目标：</b>在自己机器上装好 1.0.x 版本，并能说出包里有哪几个目录、哪个是你真正要用的。</div>
+
+  <h2>1. 前置闸：三条命令</h2>
+  <pre>node -v        <span class="c"># 要求 >= 22.16.0（package.json 的 engines 字段）</span>
+npm -v
+npm view @tencentdb-agent-memory/memory-tencentdb version</pre>
+  <p>第三条命令一箭三雕：证明包存在、证明你的 registry 可达、告诉你当前真实版本号。</p>
+  <div class="box b"><b>为什么这三条不能跳：</b>node 低于 22.16 时依赖照样能装上，但运行时才炸——涉及 <code>sqlite-vec</code> 原生模块与 <code>@node-rs/jieba</code> 中文分词。报错点离根因很远，你会以为是代码有 bug。</div>
+
+  <h2>2. 装包</h2>
+  <pre>mkdir -p /c/tdai &amp;&amp; cd /c/tdai
+npm init -y
+npm install @tencentdb-agent-memory/memory-tencentdb</pre>
+  <p>实测：包体约 1MB，依赖 24 个，其中值得注意的是这三个——<code>sqlite-vec</code>（向量存储）、<code>@node-rs/jieba</code>（中文分词）、<code>tsx</code>（TypeScript 运行时，gateway 只有 <code>.ts</code> 源码没有编译产物，靠它直接跑）。</p>
+
+  <h2>3. 装完之后包里有什么</h2>
+  <p>不要只看 <code>node_modules</code> 有没有生成。解包看一眼结构，你会少走很多弯路：</p>
+  <pre>node_modules/@tencentdb-agent-memory/memory-tencentdb/
+├── dist/           <span class="c">编译好的插件入口（只有 6 个 .mjs，不含 gateway）</span>
+├── src/            <span class="c">全部源码，gateway 在这里：src/gateway/server.ts</span>
+├── bin/            <span class="c">三个 CLI：迁移、导出、读本地记忆</span>
+├── hermes-plugin/  <span class="c">★ 你要用的 Hermes provider（v1 与 v2 各一个）</span>
+├── openclaw-plugin/<span class="c">OpenClaw 侧的插件包</span>
+└── scripts/        <span class="c">安装脚本（v1 的 .sh/.bat、v2 的 .sh）</span></pre>
+  <div class="box g"><b>关键认知：</b>npm 包<b>没有预编译 gateway</b>（<code>dist/</code> 里只有插件入口，没有 server 构建产物）。所以起 gateway 必须用 <code>tsx</code> 现场转译 <code>src/gateway/server.ts</code>——这也解释了下一课要讲的那个坑。</div>
+
+  <h2>4. 忽略那条 postinstall</h2>
+  <p>安装时你会看到它跑了一段 shell：</p>
+  <pre>bash scripts/openclaw-after-tool-call-messages.patch.sh 2>/dev/null || true</pre>
+  <p>这是给 OpenClaw 打补丁用的，末尾的 <code>|| true</code> 保证它失败也不中断安装。没有 OpenClaw 的机器上它是空操作，<b>不需要处理</b>。</p>
+
+  <h2>5. 确认装的是哪个版本</h2>
+  <pre>node -p "require('./node_modules/@tencentdb-agent-memory/memory-tencentdb/package.json').version"
+<span class="c"># 实测输出：1.0.3</span></pre>
+  <p>为什么要单独确认？因为 <code>main</code> 分支的源码里写的是 0.3.6，而 npm 上是 1.0.x。如果你一边看 GitHub 上的源码一边装 npm 包，两边对不上时会怀疑人生——先确认自己手上是哪个版本。</p>
+
+  <h2>6. 装完先别急着配 Hermes</h2>
+  <p>顺序很关键。先把 gateway 单独跑起来、验证它能记事，再去改 Hermes 配置。反过来的话，一旦 Hermes 没反应，你分不清是 provider 没加载还是 gateway 没起来——两个变量同时动，调试成本翻倍。</p>
+  <div class="box q"><b>下一步预告：</b>0003 会单独起一个 gateway，不碰你现有 Hermes 的任何配置。等 0004 用四道门证明它真的在记东西，0007 才动配置文件。</div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0003）起 gateway</b>——三种起法里有一种在这台机器上是坏的，还有一个「路径写对了但文件跑到别的盘」的坑。有疑问随时问我。
+  </div>
+
+  <footer>
+    课程 0002 · 安装篇
+    · npm 包：<a href="https://www.npmjs.com/package/@tencentdb-agent-memory/memory-tencentdb" target="_blank" rel="noopener">@tencentdb-agent-memory/memory-tencentdb</a>
+    · 一键速查：<a href="../reference/index.html">形态判定与陷阱表</a>
+  </footer>
+</div>
+
+<script>
+const Q2 = [
+  {
+    q:"npm 包里 dist/ 只有 6 个 .mjs、不含 gateway 构建产物。这说明什么？",
+    opts:["起 gateway 必须用 tsx 现场编译 src/gateway/server.ts",
+          "gateway 需要另外 npm install 一个独立的服务端包  ",
+          "dist 目录被 npm 裁掉了，要重新从源码构建一次  ",
+          "gateway 由 dist 里的入口动态生成，无需 tsx   "],
+    ans:0,
+    ok:"对。gateway 只以 .ts 源码形式发布，运行时靠 tsx 转译；这也是为什么依赖里有 tsx 这个包。",
+    no:"不对。包里没有预编译的 gateway，只有 src/gateway/server.ts 源码，所以必须借 tsx 运行。"
+  },
+  {
+    q:"安装日志里 postinstall 跑了一段 patch.sh，末尾是 || true。要怎么处理？",
+    opts:["无需处理，它是给 OpenClaw 打补丁的，失败也不中断安装",
+          "必须手动执行成功，否则 gateway 无法启动              ",
+          "要先删掉它再安装，否则会污染本机已有的项目配置      ",
+          "它会给 Hermes 打补丁，必须先关掉 Hermes 再安装      "],
+    ans:0,
+    ok:"对。这段是 OpenClaw 侧兼容补丁，没有 OpenClaw 时是空操作，|| true 保证不阻断安装。",
+    no:"不对。它只与 OpenClaw 相关，且失败被忽略；Hermes 用户不需要处理它。"
+  },
+  {
+    q:"装完包后，为什么要单独查一次 package.json 里的 version？",
+    opts:["因为仓库 main 分支写的是 0.3.6，与 npm 发布版本不一致",
+          "因为 npm 装完不会写版本号，必须手动核对一遍        ",
+          "因为版本号决定端口，装错版本端口会变成 8096        ",
+          "因为不查版本号，Hermes 就不会加载这个 provider     "],
+    ans:0,
+    ok:"对。main 分支源码是 0.3.x，npm 发布的是 1.0.x；两边同时看容易混乱，先确认手上是哪个。",
+    no:"不对。版本号与端口、加载逻辑无关；问题在于仓库源码版本与 npm 发布版本不相等，容易看串。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q2.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

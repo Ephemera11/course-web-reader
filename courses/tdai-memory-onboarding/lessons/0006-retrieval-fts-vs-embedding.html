@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0006 · 检索原理：关键词能搜到什么，搜不到什么</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:29px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  .box.b{background:var(--bad-bg);border-color:var(--bad-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px;}
+  th,td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top;}
+  th{color:var(--sub);font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;}
+  .flow{border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0;
+    background:var(--card);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:2;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;white-space:pre;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0006 · 检索原理：关键词能搜到什么，搜不到什么</h1>
+  <div class="meta">TencentDB Agent Memory 入门 · 第 6 课 · 预计 12 分钟</div>
+
+  <p class="lead">你可能已经注意到 <code>/health</code> 里 <code>embeddingService</code> 是 <code>false</code>，而搜索结果里还是写着 <code>strategy: fts</code>。这一课讲清这两个词意味着什么，以及<b>什么情况下你的记忆会「明明在库里却搜不出来」</b>。</p>
+
+  <div class="box q"><b>本节目标：</b>能解释这次检索走了哪条路径、score 从哪来、什么时候必须补 embedding。</div>
+
+  <h2>1. 一次检索的真实链路</h2>
+  <p>以下是我实测时从 gateway 日志里摘的原样输出（查询词是「招投标」）：</p>
+  <div class="flow">
+[tdai_conversation_search] CALLED: query=招投标, limit=5,<br>
+&nbsp;&nbsp;vectorStore=available, embeddingService=UNAVAILABLE<br>
+[hybrid-fts] FTS5 query: <span class="s">"投标" OR "招投标"</span><br>
+[hybrid-fts] FTS5 returned 2 candidates<br>
+RESULT (strategy=fts): returning 2 messages (scores: [0.709, 0.686])
+  </div>
+  <table>
+    <tr><th>日志</th><th>说明</th></tr>
+    <tr><td><code>embeddingService=UNAVAILABLE</code></td><td>没有向量能力，自动退回关键词检索</td></tr>
+    <tr><td><code>FTS5 query: "投标" OR "招投标"</code></td><td><b>jieba 把你的查询词切开了</b>，用 OR 展开成多个检索式</td></tr>
+    <tr><td><code>strategy=fts</code></td><td>本次走的是 SQLite FTS5 全文索引，不是向量</td></tr>
+    <tr><td><code>scores: [0.709, 0.686]</code></td><td>BM25 相关性打分，相对值，不是「置信度」</td></tr>
+  </table>
+
+  <h2>2. jieba 在中间做了什么</h2>
+  <p>中文没有空格，全文检索器不切词就查不了。所以它用 jieba 先切：「招投标」被切成「投标」和「招投标」，然后用 OR 都去查。</p>
+  <div class="box g"><b>好处：</b>你搜「招投标」时，含「投标」的句子也能命中。这也是你实测搜「招投标」能命中「招投标情报系统」那条的原因——这不是语义理解，是分词展开的功劳。</div>
+  <div class="box b"><b>代价：</b>词形不同就搜不到。你说「情报系统」、库里写「情报平台」，两个词没有共同分词结果，就查不出来。这是关键词检索的物理限制，不是参数没调好。</div>
+
+  <h2>3. 什么时候必须上 embedding</h2>
+  <table>
+    <tr><th>场景</th><th>纯 FTS 够不够</th></tr>
+    <tr><td>找自己写过的原话、项目名、函数名、错误码</td><td>够，而且更快更准</td></tr>
+    <tr><td>同义改写（「情报平台」vs「情报系统」）</td><td>不够</td></tr>
+    <tr><td>跨语言（中文问、英文记）</td><td>不够</td></tr>
+    <tr><td>模糊意图（「上次说的那个备份规矩」）</td><td>不够</td></tr>
+  </table>
+  <p>要开向量检索，配这四个字段（少任何一个都会降级）：</p>
+  <pre>{<span class="s">"embedding"</span>:{
+  <span class="s">"enabled"</span>: true,
+  <span class="s">"provider"</span>: <span class="s">"openai"</span>,
+  <span class="s">"baseUrl"</span>: <span class="s">"https://api.openai.com/v1"</span>,
+  <span class="s">"apiKey"</span>: <span class="s">"${EMBEDDING_API_KEY}"</span>,
+  <span class="s">"model"</span>: <span class="s">"text-embedding-3-small"</span>,
+  <span class="s">"dimensions"</span>: 1536
+}}</pre>
+  <div class="box b"><b>静默降级的陷阱：</b><code>apiKey</code> / <code>baseUrl</code> / <code>model</code> / <code>dimensions</code> 少任何一个，系统会<b>继续运行但自动退回非向量模式</b>——不报错、不提示。你会觉得「我明明配了 embedding，怎么还是搜不到同义词」。判断依据只有一个：<code>/health</code> 里 <code>embeddingService</code> 是否变成 <code>true</code>。</div>
+
+  <h2>4. 一个容易误解的数字</h2>
+  <p><code>score: 0.686</code> 这种值不要当阈值用。它来自 BM25：词在多少文档里出现、出现几次、文档多长——全部是<b>相对当前库</b>算出来的。库里只有 10 条时的高分，和库里 10 万条时的高分不是同一个尺度。</p>
+  <div class="box q"><b>实践建议：</b>用 score 排序看相对高低可以，用它卡绝对阈值（比如「低于 0.5 就不注入」）会随数据量漂移。真要卡阈值，先在自己库里采样看分布。</div>
+
+  <h2>小测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    💡 <b>下一课（0007）接进 Hermes</b>——provider 目录名为什么必须是下划线、config.yaml 改哪一行、以及唯一能证明 Hermes 真的认它了的那个函数。有疑问随时问我。
+  </div>
+
+  <footer>
+    课程 0006 · 检索篇
+    · 一手材料：gateway 运行日志、<code>src/core/store/bm25-local.ts</code>、<code>MemoryCore/SKILL.md</code> 的 embedding 四元组说明
+    · 外部参考：<a href="https://www.sqlite.org/fts5.html" target="_blank" rel="noopener">SQLite FTS5 文档</a>
+  </footer>
+</div>
+
+<script>
+const Q6 = [
+  {
+    q:"日志显示 FTS5 query 是 投标 OR 招投标，这个展开是谁做的？",
+    opts:["jieba 中文分词把查询词切开后用 OR 展开",
+          "SQLite 全文索引自动做了中文语义扩展  ",
+          "LLM 在检索前对查询词做了同义改写    ",
+          "浏览器端把用户的搜索词做了关键词拆分"],
+    ans:0,
+    ok:"对。中文没有空格，靠 jieba 分词后再用 OR 展开成多个检索式，所以「招投标」能命中含「投标」的句子。",
+    no:"不对。这一步是本地中文分词器做的，与 SQLite 的语义能力、LLM 改写都无关。"
+  },
+  {
+    q:"你配了 embedding 的 apiKey 和 model，但漏了 dimensions。会发生什么？",
+    opts:["继续运行但自动退回非向量模式，不报错不提示",
+          "启动失败并打印明确的缺字段错误提示      ",
+          "自动按模型默认维度补齐，行为完全一致    ",
+          "向量写入成功但检索时会抛异常中断查询    "],
+    ans:0,
+    ok:"对。四元组缺一个就静默降级——判断依据只有 /health 里 embeddingService 是否为 true。",
+    no:"不对。这套系统的降级是安静的：不报错、不中断，只是退回关键词模式，所以很容易被误判成「配了没生效」。"
+  },
+  {
+    q:"搜索结果里的 score 0.709 应该怎么用？",
+    opts:["只看相对排序，绝对阈值会随库大小漂移",
+          "直接当置信度，低于 0.7 就应该丢弃    ",
+          "固定阈值 0.5，所有库都通用不用调整  ",
+          "它是百分比，可以换算成命中概率      "],
+    ans:0,
+    ok:"对。BM25 打分相对当前语料计算，库越大分越低，拿它卡绝对阈值会随数据量漂移。要卡就在自己库里先采样。",
+    no:"不对。它不是概率也不是置信度，而是相对语料统计出来的相关性分数，尺度随数据量变化。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q6.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>

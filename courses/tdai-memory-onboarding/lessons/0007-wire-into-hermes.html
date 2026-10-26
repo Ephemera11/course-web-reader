@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>课程 0007 · 接进 Hermes：改哪一行，怎么证明它认了</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    line-height:1.75;font-size:16px;}
+  .wrap{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  h1{font-size:29px;margin:0 0 4px;letter-spacing:.4px;}
+  .meta{color:var(--sub);font-size:13px;margin-bottom:30px;}
+  h2{font-size:20px;margin:38px 0 10px;border-left:3px solid var(--accent);padding-left:12px;}
+  p{margin:10px 0;}
+  .lead{font-size:17px;}
+  .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin:18px 0;}
+  .box.q{background:var(--card2);border-color:var(--accent);}
+  .box.g{background:var(--ok-bg);border-color:var(--ok-border);}
+  .box.b{background:var(--bad-bg);border-color:var(--bad-border);}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre{background:#1f2430;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:12px;line-height:1.55;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  pre .c{color:#8b95a6} pre .k{color:#ffd479} pre .s{color:#a5e075} pre .n{color:#7fd1e0}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;}
+  th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top;}
+  th{color:var(--sub);font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;}
+  .quiz{border:1px solid var(--line);border-radius:14px;padding:8px 20px 18px;margin:24px 0;background:var(--card);}
+  .qh{font-weight:700;font-size:16px;margin:18px 0 10px;}
+  .qblock{margin:6px 0 14px;padding-top:14px;border-top:1px solid var(--line);}
+  .opt{display:block;width:100%;text-align:left;border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:10px 14px;margin:8px 0;cursor:pointer;
+    font-size:15px;font-family:inherit;color:var(--ink);transition:.12s;white-space:pre;}
+  .opt:hover{border-color:var(--accent)}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-border);color:var(--ok);font-weight:600;}
+  .opt.wrong{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+  .opt:disabled{cursor:default;}
+  .fb{font-size:14px;margin:6px 0 4px;min-height:20px;}
+  .fb.ok{color:var(--ok)} .fb.bad{color:var(--bad)}
+  .reminder{border:1px dashed var(--accent);border-radius:12px;padding:14px 18px;margin:30px 0;
+    background:var(--card2);font-size:14.5px;}
+  footer{margin-top:40px;color:var(--sub);font-size:13px;border-top:1px solid var(--line);padding-top:16px;}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--line);}
+  @media print{body{background:#fff}.wrap{padding:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>课程 0007 · 接进 Hermes：改哪一行，怎么证明它认了</h1>
+  <div class="meta">TencentDB Agent Memory 入门 · 第 7 课（收尾）· 预计 15 分钟</div>
+
+  <p class="lead">到这一课 gateway 已经能独立记事。剩下的事只有一件：让 Hermes 用它。这一步最容易的失败不是报错，而是<b>「文件放对了、配置写了，但 Hermes 根本没扫到那个目录」</b>——所以验收必须用官方的发现函数，不是 <code>ls</code>。</p>
+
+  <div class="box q"><b>本节目标：</b>完成接线三步，并用一个函数输出 True/False 证明 Hermes 真的加载了 provider。</div>
+
+  <h2>1. 先确认你的 HERMES_HOME 在哪</h2>
+  <pre>echo "$HERMES_HOME"</pre>
+  <p>这一台机器上它的值是 <code>C:\Users\WTY\AppData\Local\hermes</code>，而<b>不是</b>文档里常写的 <code>~/.hermes</code>（那个目录在本机根本不存在）。这不是小差别：provider 放在错的目录里，Hermes 永远不会加载它。</p>
+  <div class="box b"><b>规则：</b>所有「放到 <code>~/.hermes/...</code>」的指示，都要先翻译成 <code>$HERMES_HOME/...</code>。文档里的路径是按默认安装假设写的。</div>
+
+  <h2>2. 接线三步</h2>
+  <pre><span class="c"># ① 复制 provider（目录名必须是 memory_tencentdb，下划线）</span>
+cp -r node_modules/@tencentdb-agent-memory/memory-tencentdb/hermes-plugin/memory/memory_tencentdb \
+      "$HERMES_HOME/plugins/memory_tencentdb"
+
+<span class="c"># ② 在 $HERMES_HOME/config.yaml 的 memory: 段下加一行</span>
+<span class="c">#    memory:</span>
+<span class="c">#      provider: memory_tencentdb</span>
+
+<span class="c"># ③ 验证 Hermes 能发现它</span>
+cd "$HERMES_HOME/hermes-agent" &amp;&amp; venv/Scripts/python.exe -c "
+from plugins.memory import discover_memory_providers
+for name, desc, avail in discover_memory_providers(): print(name, avail)"</pre>
+
+  <div class="box b"><b>目录名是最容易错的一处：</b><code>plugin.yaml</code> 里 <code>name: memory_tencentdb</code>（下划线），而 <code>pmemory-tencentdb</code>（连字符）只是 config 里的别名。<b>目录名必须等于 plugin.yaml 的 name</b>，写成连字符会静默不加载。</div>
+
+  <h2>3. 装之前的基线（我在这台机器上实测的）</h2>
+  <pre>byterover  False
+retaindb   False
+hindsight  True      <span class="c">← 当前生效的 provider</span></pre>
+  <p>装完再跑同一条命令，列表里应该多出 <code>memory_tencentdb True</code>。<b>这个 True 就是本节唯一有效的验收标准</b>——`ls` 看到文件不算，看到目录也不算。</p>
+
+  <h2>4. 两个安装脚本并不等价</h2>
+  <table>
+    <tr><th>脚本</th><th>怎么定位 HERMES_HOME</th><th>在本机的后果</th></tr>
+    <tr><td><code>setup-hermes-memory-tencentdb.bat</code>（第 40 行）</td><td><code>if "%HERMES_HOME%"=="" set "HERMES_HOME=%USERPROFILE%\.hermes"</code> — <b>尊重已有变量</b></td><td>装到正确位置</td></tr>
+    <tr><td><code>install_hermes_memory_tencentdb.sh</code>（第 53 行）</td><td><code>HERMES_HOME="$USER_HOME/.hermes"</code> — <b>硬编码</b></td><td>装到 Hermes 根本不看的目录</td></tr>
+  </table>
+  <div class="box q"><b>Windows 上就用 .bat。</b>另外它有个前提：脚本发现 <code>config.yaml</code> 已存在时<b>只会打印</b>要加的 YAML，不会替你改——所以第 ② 步要你手工粘贴。</div>
+
+  <h2>5. 第四条路：v2 provider</h2>
+  <p>npm 包里还有一个 <code>memory_tencentdb_v2</code>，它不自己起 gateway，而是用 Python SDK 连一个已经跑着的 gateway（比如 Docker 三件套起来之后）。</p>
+  <pre>PYTHON_BIN=<span class="s">"$HERMES_HOME/hermes-agent/venv/Scripts/python.exe"</span> \
+  bash scripts/install-hermes-plugin-v2.sh</pre>
+  <div class="box b"><b>Windows 专属坑：</b>v2 脚本按 POSIX 惯例找 <code>venv/bin/python</code>，而 Windows 的 venv 是 <code>venv/Scripts/python.exe</code>。不显式传 <code>PYTHON_BIN</code> 会报「Hermes Python not found」。它的 SDK wheel 也不在 PyPI，走 cmb 直链下载。</div>
+
+  <h2>6. 十六个坑，一页看完</h2>
+  <table>
+    <tr><th>#</th><th>坑</th><th>解药</th></tr>
+    <tr><td>1</td><td>默认分支没有 package.json</td><td>插件用 npm 装，不要 clone</td></tr>
+    <tr><td>2</td><td>promptMode 文档冲突</td><td>以 .env.example 为准（默认 code）</td></tr>
+    <tr><td>3</td><td>端口 8420 双占</td><td>Docker 与 provider 默认同端口，改一个</td></tr>
+    <tr><td>4</td><td>四个 header 缺一即 bypass</td><td>team/agent/task/conversation-id 要齐</td></tr>
+    <tr><td>5</td><td>搜索工具凭空消失</td><td>设 GATEWAY_CMD 或 PORT 让工具乐观注册</td></tr>
+    <tr><td>6</td><td>配置被脚本覆写</td><td>PROXY_CONFIG_DIR 指自己的目录</td></tr>
+    <tr><td>7</td><td>user/create 不入队</td><td>再调 team-member/add</td></tr>
+    <tr><td>8</td><td>admin 与业务用户混用</td><td>admin 只做组织管理</td></tr>
+    <tr><td>9</td><td>.bat 与 .sh 不等价</td><td>Windows 用 .bat</td></tr>
+    <tr><td>10</td><td>node --import tsx 崩</td><td>用 tsx/dist/cli.mjs</td></tr>
+    <tr><td>11</td><td>MSYS 路径被误解析</td><td>传 C:/... 原生路径</td></tr>
+    <tr><td>12</td><td>残留进程污染验收</td><td>tsx 有三层进程链，按 PID 逐个清</td></tr>
+    <tr><td>13</td><td>运行中读库读到 0 行</td><td>停进程后读，或只信 API</td></tr>
+    <tr><td>14</td><td>tasksCompleted 是弱判据</td><td>认 /search/memories 有结果</td></tr>
+    <tr><td>15</td><td>包里还有 v2 provider</td><td>单机 v1，接远端 v2</td></tr>
+    <tr><td>16</td><td>v2 脚本找不到 Windows python</td><td>显式设 PYTHON_BIN</td></tr>
+  </table>
+
+  <h2>7. 什么还没被验证（诚实清单）</h2>
+  <table>
+    <tr><th>项目</th><th>为什么没验</th></tr>
+    <tr><td>Docker 三件套端到端</td><td>该网络下 registry 超时，镜像拉不下来</td></tr>
+    <tr><td>L1/L2/L3 真的抽出记忆</td><td>没有用你的密钥做实验；只验证了「没 key 时恒空」这一侧</td></tr>
+    <tr><td>Hermes 真正加载 provider</td><td>需要改 config.yaml 并写 plugins 目录，属于改你环境，要你同意</td></tr>
+    <tr><td>v2 provider 端到端</td><td>需要先有跑着的 gateway + 装 Python SDK</td></tr>
+  </table>
+  <div class="box g"><b>把这四条写下来，比多跑通一条路径更有价值。</b>技术资料最常见的失真，就是把「应该能」写成「已经能」。</div>
+
+  <h2>结课自测</h2>
+  <div class="quiz" id="quiz"></div>
+
+  <div class="reminder">
+    🎓 <b>整门课到这里结束。</b>你现在应该能做到：拿到任意一篇 TDAI 教程 30 秒判断它走哪条路；在本机把 gateway 起起来并用四道门验证；诊断「装了但没记忆」的四种原因；判断 Hermes 是否真的加载了 provider。<br><br>
+    接下来最有价值的一步：<b>把 gate 4 点亮</b>——配一个 LLM key，让 L1 真的抽出记忆，然后回看 0004 的替代判据是否变绿。有任何不清楚的，直接问我。
+  </div>
+
+  <footer>
+    课程 0007 · 接线与收尾
+    · 一手材料：<code>scripts/setup-hermes-memory-tencentdb.bat:40</code>、<code>scripts/install_hermes_memory_tencentdb.sh:53</code>、<code>hermes-plugin/memory/memory_tencentdb/README.md</code>、<code>memory_tencentdb_v2/README_CN.md</code>
+    · 速查：<a href="../reference/index.html">形态判定与陷阱表</a>
+  </footer>
+</div>
+
+<script>
+const Q7 = [
+  {
+    q:"把 provider 目录放到 $HERMES_HOME/plugins/memory-tencentdb（连字符）会怎样？",
+    opts:["不会被加载，目录名必须与 plugin.yaml 的 name 完全一致",
+          "会自动识别，连字符与下划线在目录名上是等价的      ",
+          "会加载但记忆写入失败，因为路径里含非法字符        ",
+          "会加载两次，导致每轮对话写入重复的记忆            "],
+    ans:0,
+    ok:"对。Hermes 用目录名当 provider key，必须等于 plugin.yaml 里的 name（memory_tencentdb，下划线）；连字符只是 config 别名。",
+    no:"不对。目录名就是 provider 的标识，写错不会被扫描到，而且不会有任何报错。"
+  },
+  {
+    q:"怎么才算证明 Hermes 真的加载了这个 provider？",
+    opts:["discover_memory_providers 输出里该项为 True",
+          "plugins 目录下能看到 memory_tencentdb 文件夹 ",
+          "config.yaml 里有 provider: memory_tencentdb 行   ",
+          "重启 Hermes 之后没有报错也没有崩溃提示        "],
+    ans:0,
+    ok:"对。文件存在、配置写了、没报错，都不能证明它被加载；只有官方发现函数返回 True 才算。",
+    no:"不对。前三种都是间接迹象：文件在了但目录名错、配置写了但文件不在，都可能同时成立。"
+  },
+  {
+    q:"Windows 上装 v1 provider，为什么优先用 .bat 而不是 .sh？",
+    opts:[".bat 尊重 %HERMES_HOME%，.sh 硬编码 $USER_HOME/.hermes",
+          ".sh 只能在 Linux 上运行，Windows 上直接报错退出  ",
+          ".bat 会自动配好 LLM key，.sh 需要手动填写       ",
+          ".sh 会覆盖已有配置，.bat 只会追加不覆盖          "],
+    ans:0,
+    ok:"对。.sh 第 53 行把 HERMES_HOME 写死成 $USER_HOME/.hermes，在 HERMES_HOME 指向别处的机器上会装到 Hermes 不扫描的目录。",
+    no:"不对。关键差别是路径定位方式：.bat 读环境变量并带默认值，.sh 直接写死。"
+  }
+];
+const quiz=document.getElementById('quiz');
+Q7.forEach((item,gi)=>{
+  const block=document.createElement('div');block.className='qblock';quiz.appendChild(block);
+  const h=document.createElement('div');h.className='qh';h.textContent=(gi+1)+'. '+item.q;
+  block.appendChild(h);
+  const fb=document.createElement('div');fb.className='fb';block.appendChild(fb);
+  item.opts.forEach((t,oi)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=t;
+    b.onclick=()=>{
+      const correct=oi===item.ans;
+      [...block.querySelectorAll('.opt')].forEach(x=>x.disabled=true);
+      if(correct){b.classList.add('correct');fb.className='fb ok';fb.textContent='✓ '+item.ok;}
+      else{b.classList.add('wrong');fb.className='fb bad';fb.textContent='✗ '+item.no;}
+    };
+    block.appendChild(b);
+  });
+});
+</script>
+</body>
+</html>
